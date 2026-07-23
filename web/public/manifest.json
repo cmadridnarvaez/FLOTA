@@ -1,0 +1,44 @@
+{
+  "name": "Flota CMD — CMD Servicios Tecnológicos SpA",
+  "short_name": "Flota CMD",
+  "description": "Gestión de flota vehicular de CMD Servicios Tecnológicos SpA",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0e1320",
+  "theme_color": "#0e1320",
+  "scope": "/",
+  "lang": "es-CL",
+  "categories": ["productivity", "business"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Flota",
+      "url": "/?tab=flota",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Resumen",
+      "url": "/?tab=resumen",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Documentos",
+      "url": "/?tab=documentos",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

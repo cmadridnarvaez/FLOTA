@@ -1,0 +1,85 @@
+# ============================================================================
+# Mantenedor de Vehículos — autos.cmdspa.com
+# Stack aislado: db + api + web. Red propia autos-net. Puerto host: 8090.
+# ============================================================================
+name: autos-cmdspa
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: autos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERPASS}
+      AUTOS_DB_PASSWORD: ${DB_PASSWORD}
+      TZ: America/Santiago
+    volumes:
+      - autos-db-data:/var/lib/postgresql/data
+      - ./db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - ./db/sql:/docker-entrypoint-initdb.d/sql:ro
+    networks:
+      - autos-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPERUSER:-postgres} -d autos"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # La DB NO expone puertos al host (solo accesible dentro de autos-net)
+
+  api:
+    build: ./api
+    image: autos-cmdspa-api:latest
+    container_name: autos-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: autos
+      DB_USER: autos
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-30d}
+      BOOSTR_API_KEY: ${BOOSTR_API_KEY}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      ALERTA_FROM: ${ALERTA_FROM:-autos@cmdspa.com}
+      ALERTA_TO: ${ALERTA_TO:-pagos@cmdspa.cl}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-cmadrid@cmdspa.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_NOMBRE: ${ADMIN_NOMBRE:-Cristian Madrid}
+      NODE_ENV: production
+      TZ: America/Santiago
+    volumes:
+      - autos-storage:/data/storage
+    networks:
+      - autos-net
+    # La API NO expone puertos al host (solo accesible vía web/nginx)
+
+  web:
+    build: ./web
+    image: autos-cmdspa-web:latest
+    container_name: autos-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      # ÚNICO puerto expuesto en el host
+      - "127.0.0.1:8090:8090"
+    networks:
+      - autos-net
+
+networks:
+  autos-net:
+    name: autos-net
+    driver: bridge
+
+volumes:
+  autos-db-data:
+    name: autos-db-data
+  autos-storage:
+    name: autos-storage

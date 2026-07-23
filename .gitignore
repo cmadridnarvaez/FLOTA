@@ -1,0 +1,25 @@
+# Dependencias
+node_modules/
+
+# Secrets (NUNCA subir al repo)
+.env
+.env.*
+*.key
+
+# Backups
+backups/
+*.sql.gz
+
+# macOS
+.DS_Store
+._*
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Storage temporal
+data/

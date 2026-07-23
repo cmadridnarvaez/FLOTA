@@ -1,0 +1,2581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0e1320">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Flota CMD">
+<meta name="description" content="Gestión de flota vehicular de CMD Servicios Tecnológicos SpA">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<title>Flota Vehicular · CMD Servicios Tecnológicos SpA</title>
+<script>
+// Anti-flash: aplicar tema ANTES de que el navegador pinte la página
+(function(){
+  var pref = localStorage.getItem('autos-theme') || 'auto';
+  var dark;
+  if (pref === 'dark') dark = true;
+  else if (pref === 'light') dark = false;
+  else dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme-pref', pref);
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=Orbitron:wght@600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================================
+     DESIGN TOKENS — Branding CMD con sistema de temas día/noche
+     Tres modos: auto (sigue SO), dark, light — controlado por [data-theme]
+     ========================================================================== */
+
+  /* --- Tokens compartidos (no cambian entre temas) --- */
+  :root {
+    --brand-deep:  #002080;
+    --brand-cyan:  #00eaff;
+    --brand-teal:  #4FD1C5;
+
+    --font-display: 'Orbitron', 'Exo 2', system-ui, sans-serif;
+    --font-body: 'Exo 2', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --fs-sm:   clamp(0.72rem, 0.70rem + 0.1vw, 0.78rem);
+    --fs-base: clamp(0.82rem, 0.80rem + 0.1vw, 0.88rem);
+    --fs-md:   clamp(0.88rem, 0.85rem + 0.15vw, 0.95rem);
+    --fs-lg:   clamp(1rem, 0.95rem + 0.25vw, 1.15rem);
+    --fs-xl:   clamp(1.3rem, 1.2rem + 0.5vw, 1.6rem);
+    --fs-num:  clamp(1.4rem, 1.3rem + 0.5vw, 1.8rem);
+
+    --radius:   10px;
+    --radius-sm: 7px;
+    --tap:      44px;
+
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* --- TEMA OSCURO (default) --- */
+  :root[data-theme="dark"] {
+    --bg:          #0e1320;
+    --surface:     #161d2e;
+    --surface-2:   #1e2740;
+    --border:      #2a3553;
+    --border-soft: #232f4a;
+
+    --text:        #e8ecf4;
+    --text-2:      #aab4cc;
+    --text-3:      #7c89a8;
+    --text-faint:  #6b7894;
+
+    --brand-glow:  rgba(0, 234, 255, 0.15);
+    --brand-text:  #00eaff;
+    --brand-btn-text: #001018;
+
+    --red:         #ff5c5c;
+    --red-bg:      rgba(255, 92, 92, 0.12);
+    --red-bd:      rgba(255, 92, 92, 0.5);
+    --amber:       #fbbf24;
+    --amber-bg:    rgba(251, 191, 36, 0.12);
+    --amber-bd:    rgba(251, 191, 36, 0.5);
+    --green:       #34d399;
+    --green-bg:    rgba(52, 211, 153, 0.12);
+    --green-bd:    rgba(52, 211, 153, 0.5);
+
+    --shadow-card: 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-hover: 0 8px 24px rgba(0,0,0,0.4);
+    --shadow-modal: 0 20px 60px rgba(0,0,0,0.5);
+
+    --neural-color: 0, 234, 255;
+    --neural-opacity: 0.9;
+    --scan-opacity: 0.03;
+    --bg-gradient:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0, 32, 128, 0.25), transparent),
+      radial-gradient(ellipse 60% 50% at 20% 100%, rgba(0, 234, 255, 0.06), transparent),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0, 32, 128, 0.15), transparent);
+
+    color-scheme: dark;
+  }
+
+  /* --- TEMA CLARO (día) --- */
+  :root[data-theme="light"] {
+    --bg:          #eef2fa;
+    --surface:     #ffffff;
+    --surface-2:   #e8eef8;
+    --border:      #c9d4e8;
+    --border-soft: #dde5f0;
+
+    --text:        #0f1729;
+    --text-2:      #3d4a66;
+    --text-3:      #5a6783;
+    --text-faint:  #6a7a96;
+
+    --brand-glow:  rgba(0, 32, 128, 0.10);
+    --brand-text:  #0066cc;
+    --brand-btn-text: #ffffff;
+
+    --red:         #dc2626;
+    --red-bg:      #fee2e2;
+    --red-bd:      #fca5a5;
+    --amber:       #b45309;
+    --amber-bg:    #fef3c7;
+    --amber-bd:    #fcd34d;
+    --green:       #15803d;
+    --green-bg:    #dcfce7;
+    --green-bd:    #86efac;
+
+    --shadow-card: 0 1px 4px rgba(0, 32, 128, 0.08);
+    --shadow-hover: 0 6px 20px rgba(0, 32, 128, 0.12);
+    --shadow-modal: 0 20px 50px rgba(0, 32, 128, 0.15);
+
+    --neural-color: 0, 80, 200;
+    --neural-opacity: 0.35;
+    --scan-opacity: 0.015;
+    --bg-gradient:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0, 32, 128, 0.06), transparent),
+      radial-gradient(ellipse 60% 50% at 20% 100%, rgba(0, 102, 204, 0.04), transparent),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0, 32, 128, 0.04), transparent);
+
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    font-size: var(--fs-base);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.3s var(--ease-out-quart), color 0.3s var(--ease-out-quart);
+  }
+
+  /* L3: focus-visible consistente en toda la app */
+  :focus-visible {
+    outline: 2px solid var(--brand-text);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* L6: touch targets mínimos 44px (M6) */
+  button, .btn, .link, .btn-salir, nav button, .btn.sm { min-height: var(--tap); }
+
+  /* ============================================================================
+     HEADER
+     ========================================================================== */
+  /* Header móvil: 2 filas compactas. Desktop: 1 fila */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(8px);
+    transition: background 0.3s, border-color 0.3s;
+    /* Móvil: stack vertical */
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  /* Fila 1: logo + usuario (compacta, una sola línea) */
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px clamp(12px, 3vw, 20px);
+    min-height: 52px;
+  }
+
+  /* Fila 2: tabs en scroll horizontal (móvil) */
+  .header-nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0 clamp(8px, 2vw, 16px);
+    border-top: 1px solid var(--border-soft);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  .header-nav::-webkit-scrollbar { display: none; }
+
+  /* Desktop: todo en una fila */
+  @media (min-width: 900px) {
+    header {
+      flex-direction: row;
+      align-items: center;
+      gap: clamp(8px, 2vw, 16px);
+      padding: 8px clamp(12px, 3vw, 20px);
+    }
+    .header-top {
+      padding: 0;
+      border: none;
+      flex-shrink: 0;
+    }
+    .header-nav {
+      border: none;
+      overflow: visible;
+      padding: 0;
+      flex: 1;
+    }
+  }
+
+  /* Grupo usuario: compacto en móvil */
+  .usr {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--fs-sm);
+    color: var(--text-2);
+    flex-shrink: 0;
+  }
+  .brand { display: flex; align-items: center; text-decoration: none; }
+  .brand-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--fs-md);
+    letter-spacing: 0.08em;
+    color: var(--brand-text);
+  }
+
+  /* Tabs (L5 ARIA tablist) */
+  nav { display: flex; gap: 2px; flex-wrap: wrap; }
+  nav button {
+    border: none;
+    background: none;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--fs-base);
+    color: var(--text-2);
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  nav button:hover { background: var(--surface-2); color: var(--text); }
+  nav button[aria-selected="true"] {
+    color: var(--brand-text);
+    background: var(--brand-glow);
+    font-weight: 600;
+  }
+
+  .usr .rol { background: var(--brand-glow); color: var(--brand-text); border-radius: 20px; padding: 3px 10px; font-weight: 600; font-size: var(--fs-sm); white-space: nowrap; }
+  .btn-salir {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    border-radius: var(--radius-sm);
+    padding: 0 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--fs-sm);
+  }
+  .btn-salir:hover { border-color: var(--brand-text); color: var(--text); }
+
+  /* Header de sección con título + botón de acción */
+  .sec-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .sec-head h2 { margin: 0; }
+
+  /* Botón toggle de tema */
+  .btn-theme {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    border-radius: var(--radius-sm);
+    padding: 0 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1.1rem;
+    line-height: 1;
+    min-height: var(--tap);
+    min-width: var(--tap);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-theme:hover { border-color: var(--brand-text); color: var(--text); }
+
+  main { padding: clamp(12px, 3vw, 20px); max-width: 1100px; margin: 0 auto; }
+
+  h2 {
+    font-size: var(--fs-lg);
+    margin: 20px 0 10px;
+    font-weight: 600;
+  }
+  h3 { font-size: var(--fs-md); font-weight: 600; margin: 14px 0 6px; }
+
+  /* ============================================================================
+     KPIs
+     ========================================================================== */
+  .kpis { display: flex; gap: clamp(8px, 2vw, 14px); flex-wrap: wrap; }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: clamp(10px, 2vw, 16px);
+    flex: 1;
+    min-width: 110px;
+  }
+  .kpi .num {
+    font-family: var(--font-display);
+    font-size: var(--fs-num);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .kpi .lbl { font-size: var(--fs-sm); color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; }
+  .rojo-t { color: var(--red); } .amarillo-t { color: var(--amber); } .verde-t { color: var(--green); }
+
+  /* ============================================================================
+     ITEMS (L15: sin border-left, usando indicador sutil a la izquierda vía padding + tag)
+     ========================================================================== */
+  .item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .item .tit { font-weight: 600; font-size: var(--fs-md); }
+  .item .det { font-size: var(--fs-sm); color: var(--text-3); }
+  .badge {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 4px 10px;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .badge.rojo { background: var(--red-bg); color: var(--red); }
+  .badge.amarillo { background: var(--amber-bg); color: var(--amber); }
+  .badge.verde { background: var(--green-bg); color: var(--green); }
+  .badge.gris { background: var(--surface-2); color: var(--text-3); }
+
+  /* ============================================================================
+     GRID + CARDS (L16: variar según estado, no todas idénticas)
+     ========================================================================== */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: clamp(10px, 2vw, 14px); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  /* Acento sutil arriba (no border-left) — barra fina de color según estado */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--text-faint);
+  }
+  .card.rojo::before { background: var(--red); }
+  .card.amarillo::before { background: var(--amber); }
+  .card.verde::before { background: var(--green); }
+  .card .nom { font-weight: 700; font-size: var(--fs-md); }
+  .card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .pat {
+    display: inline-block;
+    font-size: var(--fs-sm);
+    color: var(--brand-text);
+    background: var(--brand-glow);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .card .sub { font-size: var(--fs-sm); color: var(--text-2); margin-top: 8px; }
+  .card .sub2 { font-size: var(--fs-sm); color: var(--text-3); margin-top: 4px; }
+  .card .acciones { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+
+  /* Ficha técnica dentro de cards de flota */
+  .ficha {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .ficha-item {
+    background: var(--bg);
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .ficha-lbl {
+    font-size: 0.68rem;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 500;
+  }
+  .ficha-val {
+    font-size: var(--fs-sm);
+    color: var(--text);
+    font-weight: 500;
+    word-break: break-all;
+  }
+
+  /* ============================================================================
+     FICHA DE CICLO DE VIDA (vista detalle de vehículo)
+     ========================================================================== */
+  .ficha-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .ficha-header h2 { margin: 0; font-size: var(--fs-xl); }
+  .ficha-header .sub { color: var(--text-2); font-size: var(--fs-md); margin-top: 4px; }
+
+  .ficha-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .ficha-grid .ficha-item { flex-direction: row; align-items: center; gap: 8px; justify-content: space-between; }
+
+  .resumen-costos {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .resumen-costos .kpi { min-width: 130px; }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 20px; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .tl-event {
+    position: relative;
+    margin-bottom: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+  }
+  .tl-event::before {
+    content: '';
+    position: absolute;
+    left: -17px;
+    top: 14px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--brand-cyan);
+    border: 2px solid var(--bg);
+  }
+  .tl-event.mant::before { background: var(--green); }
+  .tl-event.gasto::before { background: var(--amber); }
+  .tl-event.doc::before { background: var(--brand-cyan); }
+  .tl-event .tl-fecha { font-size: var(--fs-sm); color: var(--text-3); }
+  .tl-event .tl-tipo {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+  .tl-event.mant .tl-tipo { background: var(--green-bg); color: var(--green); }
+  .tl-event.gasto .tl-tipo { background: var(--amber-bg); color: var(--amber); }
+  .tl-event.doc .tl-tipo { background: var(--brand-glow); color: var(--brand-text); }
+  .tl-event .tl-desc { font-size: var(--fs-base); }
+  .tl-event .tl-monto { font-size: var(--fs-md); font-weight: 700; color: var(--text); }
+
+  /* ============================================================================
+     TABLAS
+     ========================================================================== */
+  .tabla-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: var(--fs-base); }
+  th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border-soft); white-space: nowrap; }
+  th { background: var(--surface-2); font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-3); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface-2); }
+  .num-c { text-align: right; }
+
+  /* ============================================================================
+     FORMULARIOS (M5 labels for=, L6 touch targets)
+     ========================================================================== */
+  form.caja {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: clamp(14px, 3vw, 18px);
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+    gap: 12px;
+  }
+  .campo { display: flex; flex-direction: column; gap: 4px; }
+  .campo label { font-size: var(--fs-sm); color: var(--text-3); font-weight: 500; }
+  .campo-full { grid-column: 1 / -1; }
+
+  input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: var(--fs-base);
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    min-height: var(--tap);
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  input:focus, select:focus, textarea:focus { border-color: var(--brand-text); }
+  input::placeholder { color: var(--text-faint); }
+
+  .btn {
+    background: var(--brand-text);
+    color: var(--brand-btn-text);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0 18px;
+    font-size: var(--fs-md);
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.12s var(--ease-out-quart), box-shadow 0.15s var(--ease-out-quart), opacity 0.15s, background 0.3s;
+    min-height: var(--tap);
+    box-shadow: 0 0 0 0 var(--brand-glow);
+  }
+  .btn:hover { box-shadow: 0 0 18px 0 var(--brand-glow); }
+  .btn:active { transform: translateY(1px) scale(0.985); }   /* press satisfactorio */
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn.sec { background: transparent; color: var(--brand-text); border: 1px solid var(--brand-text); }
+  .btn.sec:hover { background: var(--brand-glow); }
+  .btn.sm { padding: 0 12px; font-size: var(--fs-sm); }
+  .btn.sm:hover { opacity: 0.88; }
+  .btn.rojo { background: transparent; color: var(--red); border: 1px solid var(--red-bd); }
+  .btn.rojo:hover { background: var(--red-bg); box-shadow: 0 0 14px 0 rgba(255,92,92,0.15); }
+  .btn.rojo:active { transform: translateY(1px) scale(0.985); }
+
+  .link {
+    background: none;
+    border: none;
+    color: var(--brand-text);
+    cursor: pointer;
+    font-size: var(--fs-sm);
+    text-decoration: underline;
+    padding: 8px 4px;
+    font-family: inherit;
+    transition: color 0.15s, opacity 0.15s;
+  }
+  .link:hover { opacity: 0.8; }
+
+  .fila-botones { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ============================================================================
+     LOGIN (L6 landmark)
+     ========================================================================== */
+  #login {
+    max-width: 360px;
+    margin: clamp(40px, 12vh, 100px) auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: clamp(24px, 5vw, 36px);
+    text-align: center;
+  }
+  #login .logo { height: 40px; margin-bottom: 16px; }
+  #login h1 {
+    font-family: var(--font-display);
+    font-size: var(--fs-lg);
+    margin-bottom: 4px;
+    letter-spacing: 0.04em;
+  }
+  #login p { font-size: var(--fs-sm); color: var(--text-3); margin-bottom: 20px; }
+  #login .campo { text-align: left; margin-bottom: 12px; }
+  #login .btn { width: 100%; }
+
+  /* Estados de feedback (M7 aria-live) */
+  #msg { color: var(--red); font-size: var(--fs-sm); text-align: center; min-height: 1.2em; }
+
+  .vacio { color: var(--text-faint); font-size: var(--fs-base); padding: 16px; text-align: center; }
+
+  /* Toast (M7 aria-live=polite) — slide + fade refinado */
+  .toast {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    background: var(--surface);
+    border: 1px solid var(--brand-text);
+    color: var(--text);
+    padding: 12px 18px 12px 14px;
+    border-radius: var(--radius);
+    font-size: var(--fs-base);
+    z-index: 100;
+    box-shadow: var(--shadow-hover);
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+    transition: opacity 0.25s var(--ease-out-quart), transform 0.3s var(--ease-out-quart);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0) scale(1); }
+  .toast .ic-ok { color: var(--green); font-size: 1.1em; }
+  .toast .ic-err { color: var(--red); font-size: 1.1em; }
+  .toast.ok { border-color: var(--green); }
+  .toast.err { border-color: var(--red); }
+
+  /* Modal (M8 role=dialog, foco-trap, Escape) */
+  .modal-fondo {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50; padding: 16px;
+  }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-modal);
+  }
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    flex-shrink: 0;
+  }
+  .modal-head h3 {
+    font-size: var(--fs-lg);
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+    margin: 0;
+  }
+  .modal-head .cerrar-x {
+    background: none; border: none; color: var(--text-3);
+    font-size: 1.3rem; cursor: pointer; padding: 4px 8px;
+    border-radius: 6px; line-height: 1; min-height: var(--tap);
+    transition: background 0.15s, color 0.15s;
+  }
+  .modal-head .cerrar-x:hover { background: var(--surface-2); color: var(--red); }
+  .modal-body { padding: 18px 20px; overflow-y: auto; flex: 1; }
+  .modal-body form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .modal-foot {
+    display: flex; gap: 8px; justify-content: flex-end;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-soft);
+    flex-shrink: 0;
+  }
+  .modal .campo-full { grid-column: 1 / -1; }
+  .modal .campo-full-line { grid-column: 1 / -1; display: flex; gap: 6px; align-items: flex-end; }
+  .check-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    max-height: 280px; overflow-y: auto;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 10px;
+  }
+  .check-grid label { display: flex; gap: 8px; align-items: center; font-size: var(--fs-base); padding: 6px; cursor: pointer; border-radius: 6px; }
+  .check-grid label:hover { background: var(--surface-2); }
+
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--brand-text); border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ============================================================================
+     ANIMACIONES DE ENTRADA — coreografía de carga (hero moment)
+     Stagger de KPIs, fade+slide de items/cards/filas
+     ========================================================================== */
+  @keyframes entra {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes entra-kpi {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  /* KPIs: stagger con delay incremental */
+  .kpis .kpi { animation: entra-kpi 0.5s var(--ease-out-quart) both; }
+  .kpis .kpi:nth-child(1) { animation-delay: 0.05s; }
+  .kpis .kpi:nth-child(2) { animation-delay: 0.12s; }
+  .kpis .kpi:nth-child(3) { animation-delay: 0.19s; }
+  .kpis .kpi:nth-child(4) { animation-delay: 0.26s; }
+  .kpis .kpi:nth-child(5) { animation-delay: 0.33s; }
+  .kpis .kpi:nth-child(n+6) { animation-delay: 0.40s; }
+
+  /* Items (vencimientos, documentos): entrada escalonada */
+  .item { animation: entra 0.35s var(--ease-out-quart) both; }
+  .item:nth-child(1) { animation-delay: 0.04s; }
+  .item:nth-child(2) { animation-delay: 0.08s; }
+  .item:nth-child(3) { animation-delay: 0.12s; }
+  .item:nth-child(4) { animation-delay: 0.16s; }
+  .item:nth-child(5) { animation-delay: 0.20s; }
+  .item:nth-child(n+6) { animation-delay: 0.24s; }
+
+  /* Cards de flota: hover lift sutil (no scale excesivo) */
+  .card {
+    transition: transform 0.2s var(--ease-out-quart), border-color 0.2s, box-shadow 0.2s, background 0.3s;
+    animation: entra 0.4s var(--ease-out-quart) both;
+  }
+  .card:nth-child(odd)  { animation-delay: 0.06s; }
+  .card:nth-child(even) { animation-delay: 0.12s; }
+  @media (hover: hover) {
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: var(--brand-text);
+      box-shadow: var(--shadow-hover);
+    }
+  }
+
+  /* Filas de tabla: fade-in sutil */
+  tbody tr { animation: entra 0.3s var(--ease-out-quart) both; }
+  tbody tr:nth-child(1) { animation-delay: 0.03s; }
+  tbody tr:nth-child(2) { animation-delay: 0.06s; }
+  tbody tr:nth-child(3) { animation-delay: 0.09s; }
+  tbody tr:nth-child(n+4) { animation-delay: 0.12s; }
+
+  /* Tabs: transición del indicador */
+  nav button { transition: background 0.18s var(--ease-out-quart), color 0.18s; }
+  nav button[aria-selected="true"] { transition: background 0.25s var(--ease-out-quart), color 0.18s; }
+
+  /* Inputs: glow al focus */
+  input, select, textarea {
+    transition: border-color 0.18s var(--ease-out-quart), box-shadow 0.18s var(--ease-out-quart);
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--brand-text);
+    box-shadow: 0 0 0 3px var(--brand-glow);
+  }
+
+  /* Logo: sutil glow pulsante en login */
+  @keyframes glow-pulse {
+    0%, 100% { filter: drop-shadow(0 0 4px rgba(0, 234, 255, 0.15)); }
+    50%      { filter: drop-shadow(0 0 12px rgba(0, 234, 255, 0.35)); }
+  }
+  #login .logo { animation: glow-pulse 3s ease-in-out infinite; }
+
+  /* Login card: entrada elegante */
+  @keyframes entra-login {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  #login { animation: entra-login 0.5s var(--ease-out-quart) both; }
+
+  /* Modal: entrada con escala desde el centro */
+  @keyframes entra-modal {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes entra-fondo { from { opacity: 0; } to { opacity: 1; } }
+  .modal { animation: entra-modal 0.25s var(--ease-out-quart) both; }
+  .modal-fondo { animation: entra-fondo 0.2s ease both; }
+
+  /* Reduced motion — respetar preferencia del usuario */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    #login .logo { animation: none !important; }
+    #neural-bg { display: none !important; }
+  }
+
+  /* ============================================================================
+     NEURAL BACKGROUND — canvas de red neuronal (efecto brand CMD)
+     Nodos que pulsan + conexiones que se encienden tipo sinapsis
+     ========================================================================== */
+  #neural-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: var(--neural-opacity);
+    transition: opacity 0.3s;
+  }
+  #login, #app { position: relative; z-index: 1; }
+
+  /* Gradiente radial sutil para dar profundidad al fondo neural */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--bg-gradient);
+    pointer-events: none;
+  }
+
+  /* Scanline tipo HUD (segunda capa del efecto neural) */
+  #scan-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(var(--neural-color), var(--scan-opacity)) 2px,
+      rgba(var(--neural-color), var(--scan-opacity)) 4px
+    );
+    mix-blend-mode: screen;
+  }
+  @media (prefers-reduced-motion: reduce) { #scan-overlay { display: none; } }
+
+  /* ============================================================================
+     DELIGHT — micro-interacciones de feedback satisfactorio
+     ========================================================================== */
+
+  /* Checkmark animado que aparece en el toast de éxito */
+  @keyframes checkmark-draw {
+    0%   { stroke-dashoffset: 24; opacity: 0; }
+    40%  { opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 1; }
+  }
+  .toast .check-anim {
+    width: 18px; height: 18px;
+    flex-shrink: 0;
+  }
+  .toast .check-anim circle {
+    fill: none;
+    stroke: var(--green);
+    stroke-width: 2;
+    opacity: 0.4;
+  }
+  .toast .check-anim path {
+    fill: none;
+    stroke: var(--green);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    animation: checkmark-draw 0.4s var(--ease-out-quart) 0.1s forwards;
+  }
+
+  /* Saludo dinámico en el header (solo desktop, en móvil está oculto) */
+  .saludo {
+    font-size: var(--fs-sm);
+    color: var(--text-3);
+    white-space: nowrap;
+    display: none; /* oculto en móvil por defecto */
+  }
+  #u-nombre { display: none; /* oculto en móvil, el saludo ya tiene el nombre */ }
+  .saludo strong { color: var(--brand-text); font-weight: 600; }
+  @media (min-width: 900px) {
+    .saludo { display: inline; }
+    #u-nombre { display: inline; }
+  }
+
+  /* Confetti sutil para celebración (flota al día) */
+  @keyframes confetti-fall {
+    0%   { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+  }
+  .confetti-piece {
+    position: fixed;
+    width: 8px; height: 8px;
+    z-index: 200;
+    pointer-events: none;
+    animation: confetti-fall 2.5s var(--ease-out-quart) forwards;
+  }
+
+  /* Pulse verde de éxito al guardar */
+  @keyframes success-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+    100% { box-shadow: 0 0 0 16px rgba(52, 211, 153, 0); }
+  }
+  .btn.success-pulse { animation: success-pulse 0.6s var(--ease-out-quart); }
+
+  /* Badge de estado con tooltip */
+  .badge { position: relative; cursor: default; }
+  .badge:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 130%; left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    box-shadow: var(--shadow-card);
+    z-index: 10;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .check-anim path, .confetti-piece, .btn.success-pulse { animation: none !important; }
+  }
+
+  /* ============================================================================
+     ANIMATE — transiciones de vista y feedback de acciones
+     ========================================================================== */
+
+  /* Vista activa: fade + slide sutil al cambiar de tab */
+  @keyframes view-enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  #view > section {
+    animation: view-enter 0.25s var(--ease-out-quart) both;
+  }
+
+  /* Fade-out al eliminar un item (antes de remove del DOM) */
+  @keyframes item-out {
+    to { opacity: 0; transform: translateX(24px); height: 0; padding: 0; margin: 0; overflow: hidden; }
+  }
+  .item.removing {
+    animation: item-out 0.3s var(--ease-out-quart) forwards;
+  }
+  .card.removing {
+    animation: item-out 0.3s var(--ease-out-quart) forwards;
+  }
+  tbody tr.removing {
+    animation: item-out 0.3s var(--ease-out-quart) forwards;
+  }
+
+  /* Hover lift en filas de tabla (más refinos que solo bg) */
+  @media (hover: hover) {
+    tbody tr {
+      transition: background 0.15s var(--ease-out-quart);
+    }
+  }
+
+  /* Badge pulse al cambiar de estado (vencido → al día tras editar) */
+  @keyframes badge-pop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  .badge.badge-pop { animation: badge-pop 0.35s var(--ease-out-quart); }
+
+  @media (prefers-reduced-motion: reduce) {
+    #view > section, .item.removing, .card.removing, tbody tr.removing, .badge.badge-pop {
+      animation: none !important;
+    }
+  }
+
+
+  /* Estados GPS en cards (reemplaza style inline frágil) */
+  .ficha-item.gps-vencido { border-color: var(--red-bd); background: var(--red-bg); }
+  .ficha-item.gps-proximo { border-color: var(--amber-bd); background: var(--amber-bg); }
+
+  /* ============================================================================
+     FOOTER — sutil y fino
+     ========================================================================== */
+  .app-footer {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px clamp(12px, 3vw, 20px) 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    opacity: 0.5;
+    transition: opacity 0.3s var(--ease-out-quart);
+    position: relative;
+    z-index: 1;
+  }
+  .app-footer:hover { opacity: 1; }
+  .footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    border-bottom: none;
+  }
+  .footer-brand:hover { opacity: 0.85; }
+  .footer-logo {
+    height: 24px;
+    width: auto;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  .footer-brand:hover .footer-logo { opacity: 1; }
+  .footer-brand span {
+    font-size: 0.7rem;
+    color: var(--text-3);
+    letter-spacing: 0.03em;
+  }
+  .footer-copy {
+    font-size: 0.68rem;
+    color: var(--text-faint);
+  }
+  .footer-copy a {
+    color: var(--text-3);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .footer-copy a:hover { color: var(--brand-text); }
+
+  /* Footer visible en la app */
+  #app .app-footer { display: flex; }
+</style>
+</head>
+<body>
+
+<!-- Neural background canvas (efecto red neuronal CMD) -->
+<canvas id="neural-bg" aria-hidden="true"></canvas>
+<div id="scan-overlay" aria-hidden="true"></div>
+
+<!-- LOGIN (L6: role=main landmark) -->
+<main id="login" role="main" aria-labelledby="login-title">
+  <img src="/cmd-logo.png" alt="Logo CMD Servicios Tecnológicos SpA" class="logo" width="116" height="37">
+  <h1 id="login-title">CMD Servicios Tecnológicos SpA</h1>
+  <p>Gestión de Flota Vehicular</p>
+  <form onsubmit="return entrar(event)" aria-describedby="msg">
+    <div class="campo">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="username" autocapitalize="none" required>
+    </div>
+    <div class="campo">
+      <label for="l-pass">Contraseña</label>
+      <input id="l-pass" type="password" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn" id="l-btn">Entrar</button>
+  </form>
+  <div id="msg" role="alert" aria-live="assertive"></div>
+</main>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <header>
+    <div class="header-top">
+      <a href="#" class="brand" aria-label="Flota — inicio" onclick="volverFlota();return false;">
+        <span class="brand-name">FLOTA</span>
+      </a>
+      <div class="usr">
+        <span class="saludo" id="u-saludo"></span>
+        <span id="u-nombre" aria-label="Usuario conectado"></span>
+        <span class="rol" id="u-rol"></span>
+        <button class="btn-theme" id="btn-theme" onclick="cambiarTema()" aria-label="Cambiar tema"></button>
+        <button class="btn-salir" onclick="salir()" aria-label="Cerrar sesión">Salir</button>
+      </div>
+    </div>
+    <nav id="tabs" class="header-nav" role="tablist" aria-label="Secciones"></nav>
+  </header>
+  <main id="view" role="main" aria-live="polite"></main>
+  <footer class="app-footer">
+    <a href="https://www.cmdspa.com" target="_blank" rel="noopener" class="footer-brand" aria-label="CMD Servicios Tecnológicos SpA">
+      <img src="/cmd-logo.png" alt="" width="80" height="26" aria-hidden="true" class="footer-logo">
+      <span>Servicios Tecnológicos SpA</span>
+    </a>
+    <span class="footer-copy">Aplicación desarrollada por <a href="https://www.cmdspa.com" target="_blank" rel="noopener">CMD Servicios Tecnológicos SpA</a></span>
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ============================================================================
+// Cliente API con refresh automático de token
+// ============================================================================
+var TOKEN = null;
+var USER = null;
+var refrescando = false;
+
+// ============================================================================
+// Sistema de temas (Auto / Oscuro / Claro)
+// ============================================================================
+var THEMES = ['auto', 'dark', 'light'];
+var THEME_ICONS = { auto: '🌓', dark: '🌙', light: '☀️' };
+var THEME_LABELS = { auto: 'Auto', dark: 'Oscuro', light: 'Claro' };
+
+function getTemaActual() {
+  return document.documentElement.getAttribute('data-theme-pref') || 'auto';
+}
+
+function aplicarTema(pref) {
+  var dark;
+  if (pref === 'dark') dark = true;
+  else if (pref === 'light') dark = false;
+  else dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme-pref', pref);
+  localStorage.setItem('autos-theme', pref);
+  actualizarBtnTema(pref);
+  // Notificar al neural background para que actualice el color
+  document.dispatchEvent(new CustomEvent('themeChanged'));
+}
+
+function actualizarBtnTema(pref) {
+  var btn = document.getElementById('btn-theme');
+  if (btn) {
+    btn.textContent = THEME_ICONS[pref] || '🌓';
+    btn.setAttribute('aria-label', 'Tema: ' + (THEME_LABELS[pref]||'Auto') + ' — clic para cambiar');
+    btn.title = 'Tema: ' + (THEME_LABELS[pref]||'Auto');
+  }
+}
+
+function cambiarTema() {
+  var actual = getTemaActual();
+  var idx = THEMES.indexOf(actual);
+  var siguiente = THEMES[(idx + 1) % THEMES.length];
+  aplicarTema(siguiente);
+}
+
+// Si está en Auto, seguir el cambio del SO en tiempo real
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+  if (getTemaActual() === 'auto') aplicarTema('auto');
+});
+
+async function api(path, opts) {
+  opts = opts || {};
+  opts.headers = opts.headers || {};
+  if (TOKEN) opts.headers['Authorization'] = 'Bearer ' + TOKEN;
+  var r = await fetch('/api' + path, opts);
+  if (r.status === 401 && !opts._reintentado && TOKEN) {
+    var ok = await intentarRefresh();
+    if (ok) { opts._reintentado = true; return api(path, opts); }
+    cerrarSesion();
+    throw new Error('Sesión expirada');
+  }
+  var data;
+  try { data = await r.json(); } catch (e) { data = {}; }
+  if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+  return data;
+}
+
+async function intentarRefresh() {
+  if (refrescando) return false;
+  refrescando = true;
+  try {
+    var r = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'same-origin' });
+    if (!r.ok) return false;
+    var d = await r.json();
+    TOKEN = d.token; USER = d.user;
+    return true;
+  } catch { return false; }
+  finally { refrescando = false; }
+}
+
+// ============================================================================
+// Estado
+// ============================================================================
+var S = { veh: [], docs: [], mant: [], gas: [], users: [], tab: 'flota', resumen: null, verVeh: null };
+var TIPOS = { soap: 'SOAP', permiso_circulacion: 'Permiso de Circulación', revision_tecnica: 'Revisión Técnica', seguro: 'Seguro', registro: 'Registro', otro: 'Otro' };
+var CATS = { combustible: 'Combustible', seguro: 'Seguro', patente: 'Patente', mantencion: 'Mantención', peaje: 'Peaje', repuestos: 'Repuestos', accesorios: 'Accesorios', otro: 'Otro' };
+
+// L2: helper para emojis decorativos con aria-hidden
+function ico(emoji) { return '<span aria-hidden="true">' + emoji + '</span> '; }
+
+// ============================================================================
+// Utilidades
+// ============================================================================
+function $(id) { return document.getElementById(id); }
+function esc(t) { return t == null ? '' : String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// Formatea fecha a DD/MM/YYYY (zona horaria America/Santiago, sin el feo ISO)
+function fmtF(f) {
+  if (!f) return '—';
+  var s = String(f);
+  // Si viene como ISO (2026-07-18T04:00:00.000Z), extraer solo la parte de fecha
+  if (s.indexOf('T') >= 0) s = s.split('T')[0];
+  var p = s.split('-');
+  if (p.length === 3) return p[2] + '/' + p[1] + '/' + p[0];
+  return s;
+}
+// Formatea fecha con hora (para timestamps como ultimo_uso, creado_en)
+function fmtFH(f) {
+  if (!f) return '—';
+  var d = new Date(f);
+  if (isNaN(d)) return f;
+  // Convertir a zona America/Santiago (-4 en invierno, -3 en verano pero simplificamos a -4 CLT)
+  var cl = new Date(d.getTime() - (4 * 3600000));
+  var dd = String(cl.getDate()).padStart(2, '0');
+  var mm = String(cl.getMonth() + 1).padStart(2, '0');
+  var yy = cl.getFullYear();
+  var hh = String(cl.getHours()).padStart(2, '0');
+  var mi = String(cl.getMinutes()).padStart(2, '0');
+  return dd + '/' + mm + '/' + yy + ' ' + hh + ':' + mi;
+}
+function fmtM(n) { return n == null ? '—' : '$' + Number(n).toLocaleString('es-CL'); }
+function dias(f) {
+  if (!f) return 999;
+  var s = String(f); if (s.indexOf('T') >= 0) s = s.split('T')[0];
+  return Math.ceil((new Date(s + 'T12:00:00') - new Date()) / 86400000);
+}
+function estadoDoc(vence) {
+  if (!vence) return { cls: 'gris', txt: 'Sin fecha' };
+  var d = dias(vence);
+  if (d < 0) return { cls: 'rojo', txt: 'Vencido ' + (-d) + 'd' };
+  if (d === 0) return { cls: 'rojo', txt: 'HOY' };
+  if (d <= 60) return { cls: 'amarillo', txt: 'En ' + d + 'd' };
+  return { cls: 'verde', txt: fmtF(vence) };
+}
+function vNom(id) { var v = S.veh.find(function(x){return Number(x.id)===Number(id);}); return v ? v.nombre + (v.patente ? ' (' + v.patente + ')' : '') : '?'; }
+
+// L1: helper para botón eliminar con aria-label descriptivo
+function btnEliminar(onclick, label) {
+  return '<button class="btn rojo sm" onclick="' + onclick + '" aria-label="' + esc(label) + '">' + ico('🗑') + '</button>';
+}
+// Toast con checkmark animado SVG (delight: feedback visual satisfactorio)
+function toast(msg, tipo) {
+  var t = $('toast');
+  var icono = '';
+  if (tipo === 'ok') {
+    icono = '<svg class="check-anim" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3.5 3.5L17 8.5"/></svg>';
+  } else if (tipo === 'err') {
+    icono = '<span class="ic-err" aria-hidden="true">✕</span>';
+  }
+  t.innerHTML = icono + '<span>' + esc(msg) + '</span>';
+  t.className = 'toast show' + (tipo ? ' ' + tipo : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.classList.remove('show'); }, 3200);
+}
+
+// Confetti sutil para celebración (flota al día)
+function celebrar() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var colores = ['var(--brand-cyan)', 'var(--green)', 'var(--amber)', 'var(--brand-teal)'];
+  for (var i = 0; i < 30; i++) {
+    var p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.background = colores[i % colores.length];
+    p.style.animationDelay = Math.random() * 0.5 + 's';
+    p.style.animationDuration = (2 + Math.random() * 1.5) + 's';
+    p.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    document.body.appendChild(p);
+    setTimeout(function(el) { el.remove(); }, 4000, p);
+  }
+}
+
+// Animate: fade-out suave antes de eliminar un elemento del DOM
+function eliminarConAnimacion(el, callback) {
+  if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (callback) callback();
+    return;
+  }
+  el.classList.add('removing');
+  setTimeout(function() { if (callback) callback(); }, 300);
+}
+
+// ============================================================================
+// Auth
+// ============================================================================
+async function entrar(e) {
+  if (e) e.preventDefault();
+  $('msg').textContent = '';
+  var btn = $('l-btn'); btn.disabled = true; btn.textContent = 'Entrando...';
+  try {
+    var r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ email: $('l-email').value.trim(), password: $('l-pass').value })
+    });
+    var d = await r.json();
+    if (!r.ok) {
+      $('msg').textContent = d.error || 'Error al entrar';
+      return false;
+    }
+    TOKEN = d.token; USER = d.user;
+    iniciar();
+  } catch (err) {
+    $('msg').textContent = 'Error de conexión: ' + err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+  return false;
+}
+
+async function salir() {
+  try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch {}
+  cerrarSesion();
+}
+function cerrarSesion() {
+  TOKEN = null; USER = null;
+  $('login').style.display = 'block';
+  $('app').style.display = 'none';
+}
+
+async function iniciar() {
+  $('login').style.display = 'none';
+  $('app').style.display = 'block';
+  $('u-nombre').textContent = USER.nombre;
+  $('u-rol').textContent = USER.rol === 'admin' ? 'Admin' : 'Usuario';
+  // Saludo dinámico según hora
+  var h = new Date().getHours();
+  var saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
+  $('u-saludo').innerHTML = saludo + ', <strong>' + esc(USER.nombre.split(' ')[0]) + '</strong>';
+  actualizarBtnTema(getTemaActual());
+  await cargarTodo();
+  render();
+}
+
+async function cargarTodo() {
+  var [veh, docs, mant, gas, res] = await Promise.all([
+    api('/vehiculos'),
+    api('/documentos'),
+    api('/mantenciones'),
+    api('/gastos'),
+    api('/resumen')
+  ]);
+  S.veh = (veh.data||[]).map(function(v){v.id=Number(v.id);return v;});
+  S.docs = (docs.data||[]).map(function(d){d.id=Number(d.id);d.vehiculo_id=Number(d.vehiculo_id);return d;});
+  S.mant = (mant.data||[]).map(function(m){m.id=Number(m.id);m.vehiculo_id=Number(m.vehiculo_id);return m;});
+  S.gas = (gas.data||[]).map(function(g){g.id=Number(g.id);g.vehiculo_id=Number(g.vehiculo_id);return g;});
+  S.resumen = res.data;
+  if (USER.rol === 'admin') {
+    try { var u = await api('/usuarios'); S.users = (u.data||[]).map(function(x){x.id=Number(x.id);return x;}); } catch { S.users = []; }
+  }
+}
+
+// ============================================================================
+// Render principal (L5 ARIA tablist)
+// ============================================================================
+var TAB_DEFS = [['flota','Flota'],['resumen','Resumen'],['documentos','Documentos'],['mantenciones','Mantenciones'],['gastos','Gastos'],['chile','Chile']];
+
+function render() {
+  var tabs = TAB_DEFS.slice();
+  if (USER.rol === 'admin') tabs.push(['usuarios','Usuarios']);
+  $('tabs').innerHTML = tabs.map(function(t){
+    var sel = S.tab === t[0];
+    return '<button role="tab" id="tab-'+t[0]+'" aria-selected="'+sel+'" aria-controls="panel-'+t[0]+'" tabindex="'+(sel?'0':'-1')+'" onclick="irA(\''+t[0]+'\')">'+t[1]+'</button>';
+  }).join('');
+  var f = { resumen: vResumen, flota: vFlota, documentos: vDocs, mantenciones: vMant, gastos: vGastos, chile: vChile, usuarios: vUsuarios, ficha: vFichaVeh };
+  $('view').innerHTML = '<section role="tabpanel" id="panel-'+S.tab+'" aria-labelledby="tab-'+S.tab+'">' + f[S.tab]() + '</section>';
+  // Disparar count-up de KPIs cuando se muestra el resumen
+  if (S.tab === 'resumen') {
+    animarKPIs();
+    // Celebración: si toda la flota está al día (0 vencidos), confetti sutil
+    if (S.resumen && S.resumen.vencidos === 0 && S.resumen.proximos === 0 && !S._celebrado) {
+      setTimeout(celebrar, 600);
+      S._celebrado = true; // solo una vez por sesión
+    }
+  }
+}
+function irA(t) { S.tab = t; render(); }
+
+// Count-up animado para KPIs (delight: los números "cuentan" al cargar el resumen)
+function animarKPIs() {
+  var nums = document.querySelectorAll('[data-count]');
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  nums.forEach(function(el) {
+    var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+    if (reduce || target === 0) { el.textContent = target; return; }
+    var start = 0, dur = 700, t0 = null;
+    function step(ts) {
+      if (!t0) t0 = ts;
+      var p = Math.min((ts - t0) / dur, 1);
+      // ease-out-quart
+      var eased = 1 - Math.pow(1 - p, 4);
+      el.textContent = Math.round(start + (target - start) * eased);
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+// ============================================================================
+// Vista: Resumen
+// ============================================================================
+function vResumen() {
+  var r = S.resumen || {};
+  var h = '<h2>Resumen</h2><div class="kpis">' +
+    '<div class="kpi"><div class="num" data-count="'+(r.total||0)+'">0</div><div class="lbl">Vehículos</div></div>' +
+    '<div class="kpi"><div class="num rojo-t" data-count="'+(r.vencidos||0)+'">0</div><div class="lbl">Vencidos</div></div>' +
+    '<div class="kpi"><div class="num amarillo-t" data-count="'+(r.proximos||0)+'">0</div><div class="lbl">Vencen 60d</div></div>' +
+    '<div class="kpi"><div class="num verde-t" data-count="'+(r.alDia||0)+'">0</div><div class="lbl">Al día</div></div></div>';
+  h += '<h2>Próximos vencimientos</h2>';
+  var lista = r.proximosVenc || [];
+  if (!lista.length) h += '<div class="vacio">'+ico('✅')+'Todo al día. Ningún vencimiento en el horizonte.</div>';
+  lista.forEach(function(d){
+    var e = estadoDoc(d.vence);
+    var tip = e.cls === 'rojo' ? 'Vencido — requiere acción inmediata'
+            : e.cls === 'amarillo' ? 'Por vencer — planificar renovación'
+            : 'Vigente';
+    h += '<div class="item"><div><div class="tit">'+esc(d.nombre)+(d.patente?' — '+esc(d.patente):'')+' · '+(TIPOS[d.tipo]||d.tipo)+'</div>'+
+      '<div class="det">'+esc(d.descripcion||'')+' · vence '+fmtF(d.vence)+'</div></div>'+
+      '<span class="badge '+e.cls+'" data-tip="'+tip+'">'+e.txt+'</span></div>';
+  });
+  return h;
+}
+
+// ============================================================================
+// Vista: Flota (cards con botones Agregar/Editar que abren modal)
+// ============================================================================
+function vFlota() {
+  var h = '<div class="sec-head">' +
+    '<h2 style="margin:0">Flota ('+S.veh.length+')</h2>' +
+    '<button class="btn sm" onclick="modalVeh()">'+ico('➕')+'Agregar vehículo</button></div>';
+  h += '<div class="grid" style="margin-top:12px">';
+  S.veh.forEach(function(v){
+    var docs = S.docs.filter(function(d){return d.vehiculo_id===v.id && d.vence;});
+    var peor = docs.length ? 'verde' : 'gris';
+    docs.forEach(function(d){ var c = estadoDoc(d.vence).cls; if (c==='rojo'||(c==='amarillo'&&peor!=='rojo')) peor=c; });
+    var txt = peor==='rojo'?'Crítico':peor==='amarillo'?'Por vencer':peor==='verde'?'Al día':'Sin fechas';
+
+    // Marca + modelo + año como subtítulo principal
+    var identidad = [v.marca, v.modelo].filter(Boolean).join(' ');
+    if (v.anio) identidad += (identidad ? ' · ' : '') + v.anio;
+
+    h += '<article class="card '+peor+'">' +
+      '<div class="top"><span class="nom">'+esc(v.nombre)+'</span>'+
+      '<span class="badge '+peor+'">'+txt+'</span></div>'+
+
+      // Línea 1: patente + identidad
+      '<div class="sub">' +
+        (v.patente ? '<span class="pat">'+esc(v.patente)+'</span>' : '<span class="pat" style="opacity:0.5">sin patente</span>') +
+        (identidad ? '<span style="margin-left:6px">'+esc(identidad)+'</span>' : '') +
+      '</div>'+
+
+      // Ficha técnica: grilla de datos clave con etiquetas
+      '<div class="ficha">' +
+        fichaItem('Color', v.color) +
+        fichaItem('VIN / Chasis', v.vin) +
+        fichaItem('N° Motor', v.motor) +
+        gpsItemCard(v) +
+      '</div>' +
+
+      (v.titular?'<div class="sub2" style="margin-top:8px">'+ico('👤')+esc(v.titular)+'</div>':'')+
+
+      '<div class="acciones"><button class="btn sm" onclick="verFichaVeh('+v.id+')">Ver ficha</button>'+
+      '<button class="btn sec sm" onclick="modalVeh('+v.id+')">Editar</button>'+
+      (USER.rol==='admin'?'<button class="btn rojo sm" onclick="borrarVeh('+v.id+',\''+esc(v.nombre).replace(/'/g,"\\'")+'\')" aria-label="Eliminar vehículo">Eliminar</button>':'')+
+      '</div></article>';
+  });
+  return h + '</div>';
+}
+
+// Helper: item de ficha técnica (solo si hay valor)
+function fichaItem(label, valor) {
+  if (!valor) return '';
+  return '<div class="ficha-item"><span class="ficha-lbl">'+label+'</span><span class="ficha-val">'+esc(valor)+'</span></div>';
+}
+
+// Helper: item de GPS para card de flota (con color según estado)
+function gpsItemCard(v) {
+  if (!v.gps_tipo) return '';
+  var label = v.gps_tipo === 'airtag' ? 'AirTag'
+            : v.gps_tipo === 'prepago' ? 'GPS Prepago'
+            : v.gps_tipo === 'suscripcion' ? 'GPS Suscripción' : 'GPS';
+  var valor = v.gps_empresa ? (v.gps_empresa + (v.gps_device_id ? ' · ' + v.gps_device_id : '')) : label;
+  // Color según vencimiento
+  var cls = 'ficha-item';
+  if (v.gps_vence && (v.gps_tipo === 'suscripcion' || v.gps_tipo === 'prepago')) {
+    var d = dias(v.gps_vence);
+    if (d < 0) cls = 'ficha-item gps-vencido';
+    else if (d <= 30) cls = 'ficha-item gps-proximo';
+  }
+  return '<div class="' + cls + '"><span class="ficha-lbl">' + ico('📍') + label + '</span><span class="ficha-val">' + esc(valor) + '</span></div>';
+}
+
+async function borrarVeh(id, nombre) {
+  if (!confirm('¿Eliminar "'+nombre+'" y todos sus documentos, mantenciones y gastos?\nEsta acción no se puede deshacer.')) return;
+  try { await api('/vehiculos/'+id, { method:'DELETE' }); toast('Vehículo retirado de la flota', 'ok'); S.verVeh = null; await cargarTodo(); render(); }
+  catch (err) { toast(err.message, 'err'); }
+}
+
+// ============================================================================
+// FICHA DE CICLO DE VIDA — vista detalle de un vehículo con timeline completo
+// ============================================================================
+function verFichaVeh(id) {
+  S.verVeh = Number(id);
+  S.tab = 'ficha';
+  render();
+}
+
+function volverFlota() {
+  S.verVeh = null;
+  S.tab = 'flota';
+  render();
+}
+
+function vFichaVeh() {
+  if (!S.verVeh) { irA('flota'); return ''; }
+  var v = S.veh.find(function(x){ return Number(x.id) === Number(S.verVeh); });
+  if (!v) { irA('flota'); return ''; }
+
+  // Filtrar datos de este vehículo
+  var docs = S.docs.filter(function(d){ return Number(d.vehiculo_id) === Number(v.id); });
+  var mant = S.mant.filter(function(m){ return Number(m.vehiculo_id) === Number(v.id); });
+  var gas = S.gas.filter(function(g){ return Number(g.vehiculo_id) === Number(v.id); });
+
+  // Costos totales
+  var totalMant = mant.reduce(function(a,m){ return a + Number(m.costo||0); }, 0);
+  var totalGas = gas.reduce(function(a,g){ return a + Number(g.monto||0); }, 0);
+  var totalDocs = docs.length;
+
+  // Estado de documentos (peor caso)
+  var docsConVenc = docs.filter(function(d){ return d.vence; });
+  var peor = docsConVenc.length ? 'verde' : 'gris';
+  docsConVenc.forEach(function(d){ var c = estadoDoc(d.vence).cls; if (c==='rojo'||(c==='amarillo'&&peor!=='rojo')) peor=c; });
+
+  // Construir timeline: unificar todos los eventos con fecha
+  var eventos = [];
+  docs.forEach(function(d){
+    eventos.push({ fecha: d.vence||d.creado_en, tipo: 'doc', tipoTxt: TIPOS[d.tipo]||d.tipo, desc: d.descripcion||'', monto: null, obj: d });
+  });
+  mant.forEach(function(m){
+    eventos.push({ fecha: m.fecha, tipo: 'mant', tipoTxt: m.tipo||'Mantención', desc: m.descripcion||'', monto: m.costo, km: m.kilometraje, obj: m });
+  });
+  gas.forEach(function(g){
+    eventos.push({ fecha: g.fecha, tipo: 'gasto', tipoTxt: CATS[g.categoria]||g.categoria, desc: g.descripcion||'', monto: g.monto, obj: g });
+  });
+  // Ordenar por fecha descendente (más reciente primero)
+  eventos.sort(function(a,b){ return a.fecha < b.fecha ? 1 : -1; });
+
+  // Render
+  var identidad = [v.marca, v.modelo].filter(Boolean).join(' ');
+  if (v.anio) identidad += (identidad ? ' · ' : '') + v.anio;
+
+  var h = '';
+
+  // Header con botón volver
+  h += '<div class="sec-head"><button class="btn sec sm" onclick="volverFlota()">'+ico('←')+'Volver a Flota</button></div>';
+
+  // Ficha header
+  h += '<div class="ficha-header">';
+  h += '<div>';
+  h += '<h2>'+esc(v.nombre)+'</h2>';
+  h += '<div class="sub">' + (v.patente ? '<span class="pat">'+esc(v.patente)+'</span>' : '<span class="pat" style="opacity:0.5">sin patente</span>');
+  if (identidad) h += ' ' + esc(identidad);
+  h += '</div>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:8px"><button class="btn sec sm" onclick="modalVeh('+v.id+')">Editar</button></div>';
+  h += '</div>';
+
+  // KPIs de ciclo de vida
+  h += '<div class="kpis">';
+  h += '<div class="kpi"><div class="num">'+totalDocs+'</div><div class="lbl">Documentos</div></div>';
+  h += '<div class="kpi"><div class="num">'+mant.length+'</div><div class="lbl">Mantenciones</div></div>';
+  h += '<div class="kpi"><div class="num">'+fmtM(totalMant)+'</div><div class="lbl">Total mantenciones</div></div>';
+  h += '<div class="kpi"><div class="num">'+fmtM(totalGas)+'</div><div class="lbl">Total gastos</div></div>';
+  h += '</div>';
+
+  // Costo total del vehículo
+  h += '<div class="item verde" style="margin:12px 0"><div><div class="tit">Inversión total en el vehículo</div><div class="det">Mantenciones + gastos acumulados</div></div><span class="badge verde">'+fmtM(totalMant+totalGas)+'</span></div>';
+
+  // Ficha técnica
+  h += '<h2>Ficha técnica</h2>';
+  h += '<div class="ficha-grid">';
+  if (v.color) h += '<div class="ficha-item"><span class="ficha-lbl">Color</span><span class="ficha-val">'+esc(v.color)+'</span></div>';
+  if (v.vin) h += '<div class="ficha-item"><span class="ficha-lbl">VIN / Chasis</span><span class="ficha-val">'+esc(v.vin)+'</span></div>';
+  if (v.motor) h += '<div class="ficha-item"><span class="ficha-lbl">Motor</span><span class="ficha-val">'+esc(v.motor)+'</span></div>';
+  if (v.titular) h += '<div class="ficha-item"><span class="ficha-lbl">Titular</span><span class="ficha-val">'+esc(v.titular)+'</span></div>';
+  if (v.notas) h += '<div class="ficha-item" style="grid-column:1/-1"><span class="ficha-lbl">Notas</span><span class="ficha-val">'+esc(v.notas)+'</span></div>';
+  if (!v.color && !v.vin && !v.motor && !v.titular && !v.gps_tipo) h += '<div class="vacio">Sin ficha técnica. Edita el vehículo para agregar datos.</div>';
+  h += '</div>';
+
+  // GPS / Tracking
+  if (v.gps_tipo) {
+    h += '<h2>GPS / Tracking</h2>';
+    var gpsLabel = v.gps_tipo === 'airtag' ? 'AirTag' : v.gps_tipo === 'prepago' ? 'GPS Prepago' : v.gps_tipo === 'suscripcion' ? 'GPS Suscripción' : 'GPS';
+    var gpsEstado = '';
+    if (v.gps_vence && (v.gps_tipo === 'suscripcion' || v.gps_tipo === 'prepago')) {
+      var e = estadoDoc(v.gps_vence);
+      gpsEstado = '<span class="badge ' + e.cls + '">' + e.txt + '</span>';
+    } else if (v.gps_tipo === 'airtag') {
+      gpsEstado = '<span class="badge verde">Sin vencimiento</span>';
+    }
+    h += '<div class="item verde"><div>' +
+      '<div class="tit">' + ico('📍') + esc(gpsLabel) + (v.gps_empresa ? ' · ' + esc(v.gps_empresa) : '') + '</div>' +
+      '<div class="det">' +
+        (v.gps_device_id ? 'Dispositivo: ' + esc(v.gps_device_id) : '') +
+        (v.gps_vence ? ' · Vence: ' + fmtF(v.gps_vence) : '') +
+      '</div></div>' + gpsEstado + '</div>';
+  }
+
+  // Documentos vigentes
+  if (docsConVenc.length) {
+    h += '<h2>Estado de documentos</h2>';
+    docsConVenc.forEach(function(d){
+      var e = estadoDoc(d.vence);
+      h += '<div class="item '+e.cls+'"><div><div class="tit">'+(TIPOS[d.tipo]||d.tipo)+'</div>';
+      h += '<div class="det">'+esc(d.descripcion||'')+' · vence '+fmtF(d.vence)+'</div></div>';
+      h += '<span class="badge '+e.cls+'">'+e.txt+'</span></div>';
+    });
+  }
+
+  // Timeline de ciclo de vida
+  h += '<h2>Ciclo de vida <span style="color:var(--text-3);font-size:var(--fs-sm)">('+eventos.length+' eventos)</span></h2>';
+  if (!eventos.length) {
+    h += '<div class="vacio">Sin actividad registrada. Agrega documentos, mantenciones o gastos para ver el historial.</div>';
+  } else {
+    h += '<div class="timeline">';
+    eventos.forEach(function(ev){
+      h += '<div class="tl-event '+ev.tipo+'">';
+      h += '<div class="tl-fecha">'+fmtF(ev.fecha)+(ev.km?' · '+Number(ev.km).toLocaleString('es-CL')+' km':'')+'</div>';
+      h += '<span class="tl-tipo">'+esc(ev.tipoTxt)+'</span>';
+      h += '<div class="tl-desc">'+esc(ev.desc||ev.tipoTxt)+'</div>';
+      if (ev.monto) h += '<div class="tl-monto">'+fmtM(ev.monto)+'</div>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+
+  return h;
+}
+
+// ============================================================================
+// Vista: Documentos (con botones Agregar/Editar que abren modal)
+// ============================================================================
+function vDocs() {
+  var h = '<div class="sec-head">' +
+    '<h2 style="margin:0">Documentos</h2>' +
+    '<button class="btn sm" onclick="modalDoc()">'+ico('➕')+'Agregar documento</button></div>';
+  h += '<div>';
+  var agrupado = {};
+  S.docs.forEach(function(d){ (agrupado[d.vehiculo_id] = agrupado[d.vehiculo_id]||[]).push(d); });
+  var hayAlguno = false;
+  S.veh.forEach(function(v){
+    var docs = agrupado[v.id] || [];
+    if (!docs.length) return;
+    hayAlguno = true;
+    h += '<h3 style="color:var(--brand-text)">'+esc(v.nombre)+(v.patente?' · '+esc(v.patente):'')+'</h3>';
+    docs.forEach(function(d){
+      var e = estadoDoc(d.vence);
+      h += '<div class="item '+(d.vence?e.cls:'')+'"><div><div class="tit">'+(TIPOS[d.tipo]||d.tipo)+'</div>'+
+        '<div class="det">'+esc(d.descripcion||'')+(d.vence?' · vence '+fmtF(d.vence):'')+'</div></div>'+
+        (d.archivo_path?'<button class="link" onclick="verDoc('+d.id+')">'+ico('📄')+'Ver</button>':'')+
+        '<button class="btn sec sm" onclick="modalDoc('+d.id+')" aria-label="Editar documento">'+ico('✏️')+'</button>'+
+        btnEliminar('borrarDoc('+d.id+')','Eliminar documento '+(TIPOS[d.tipo]||d.tipo))+
+        '<span class="badge '+e.cls+'">'+e.txt+'</span></div>';
+    });
+  });
+  if (!hayAlguno) h += '<div class="vacio">Sin documentos registrados todavía. Sube el SOAP o el permiso para empezar.</div>';
+  return h + '</div>';
+}
+
+function verDoc(id) {
+  fetch('/api/documentos/'+id+'/archivo', { headers: { Authorization: 'Bearer '+TOKEN } })
+    .then(function(r){ if(!r.ok) throw new Error('No autorizado'); return r.blob(); })
+    .then(function(b){
+      var url = URL.createObjectURL(b);
+      window.open(url, '_blank');
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+    })
+    .catch(function(){ toast('No se pudo abrir el archivo', 'err'); });
+}
+
+async function borrarDoc(id) {
+  if (!confirm('¿Eliminar este documento?')) return;
+  try { await api('/documentos/'+id, { method:'DELETE' }); toast('Documento eliminado', 'ok'); await cargarTodo(); render(); }
+  catch (err) { toast(err.message, 'err'); }
+}
+
+// Helper: fade-out suave antes de recargar vista tras eliminar
+function animarEliminar(selector, id, callback) {
+  var el = document.querySelector(selector + '[data-id="'+id+'"]');
+  if (!el) { callback(); return; }
+  eliminarConAnimacion(el, callback);
+}
+
+// ============================================================================
+// Vista: Mantenciones (con botones Agregar/Editar que abren modal)
+// ============================================================================
+function vMant() {
+  var h = '<div class="sec-head">' +
+    '<h2 style="margin:0">Historial ('+S.mant.length+')</h2>' +
+    '<button class="btn sm" onclick="modalMant()">'+ico('➕')+'Registrar mantención</button></div>';
+  h += '<div>';
+  if (!S.mant.length) return h + '<div class="vacio">Aún sin mantenciones. Cuando cambies el aceite o pases revisión, regístralo acá.</div>';
+  h += '<div class="tabla-wrap"><table><tr><th>Fecha</th><th>Vehículo</th><th>Tipo</th><th>Descripción</th><th class="num-c">Km</th><th class="num-c">Costo</th><th></th></tr>';
+  S.mant.forEach(function(m){
+    h += '<tr><td>'+fmtF(m.fecha)+'</td><td>'+esc(vNom(m.vehiculo_id))+'</td><td>'+esc(m.tipo||'—')+'</td>'+
+      '<td>'+esc(m.descripcion||'')+'</td><td class="num-c">'+(m.kilometraje?Number(m.kilometraje).toLocaleString('es-CL'):'—')+'</td>'+
+      '<td class="num-c">'+fmtM(m.costo)+'</td><td style="white-space:nowrap">'+
+      '<button class="btn sec sm" onclick="modalMant('+m.id+')" aria-label="Editar mantención">'+ico('✏️')+'</button> '+
+      btnEliminar('borrarMant('+m.id+')','Eliminar mantención')+'</td></tr>';
+  });
+  return h + '</table></div>';
+}
+
+async function borrarMant(id) {
+  try { await api('/mantenciones/'+id, { method:'DELETE' }); toast('Eliminado', 'ok'); await cargarTodo(); render(); }
+  catch (err) { toast(err.message, 'err'); }
+}
+
+// ============================================================================
+// Vista: Gastos (con botones Agregar/Editar que abren modal)
+// ============================================================================
+function vGastos() {
+  var anio = new Date().getFullYear();
+  var delAnio = S.gas.filter(function(g){return g.fecha && String(g.fecha).slice(0,4)==anio;});
+  var tot = delAnio.reduce(function(a,g){return a+Number(g.monto||0);},0);
+  var h = '<div class="sec-head">' +
+    '<h2 style="margin:0">Gastos</h2>' +
+    '<button class="btn sm" onclick="modalGasto()">'+ico('➕')+'Registrar gasto</button></div>';
+  h += '<div class="kpis" style="margin:14px 0"><div class="kpi"><div class="num">'+fmtM(tot)+'</div><div class="lbl">Total '+anio+'</div></div>';
+  Object.keys(CATS).forEach(function(c){
+    var s = delAnio.filter(function(g){return g.categoria===c;}).reduce(function(a,g){return a+Number(g.monto||0);},0);
+    if (s>0) h += '<div class="kpi"><div class="num" style="font-size:var(--fs-md)">'+fmtM(s)+'</div><div class="lbl">'+CATS[c]+'</div></div>';
+  });
+  h += '</div><h2>Movimientos ('+S.gas.length+')</h2>';
+  if (!S.gas.length) return h + '<div class="vacio">Sin gastos registrados. Agrega bencina, peajes o seguros para llevar el control.</div>';
+  h += '<div class="tabla-wrap"><table><tr><th>Fecha</th><th>Vehículo</th><th>Categoría</th><th>Descripción</th><th class="num-c">Monto</th><th></th></tr>';
+  S.gas.forEach(function(g){
+    h += '<tr><td>'+fmtF(g.fecha)+'</td><td>'+esc(vNom(g.vehiculo_id))+'</td><td>'+(CATS[g.categoria]||g.categoria)+'</td>'+
+      '<td>'+esc(g.descripcion||'')+'</td><td class="num-c">'+fmtM(g.monto)+'</td>'+
+      '<td style="white-space:nowrap"><button class="btn sec sm" onclick="modalGasto('+g.id+')" aria-label="Editar gasto">'+ico('✏️')+'</button> '+
+      btnEliminar('borrarGasto('+g.id+')','Eliminar gasto')+'</td></tr>';
+  });
+  return h + '</table></div>';
+}
+
+async function borrarGasto(id) {
+  try { await api('/gastos/'+id, { method:'DELETE' }); toast('Eliminado', 'ok'); await cargarTodo(); render(); }
+  catch (err) { toast(err.message, 'err'); }
+}
+
+// ============================================================================
+// Vista: Chile — indicadores económicos, sismos y feriados (APIs públicas)
+// ============================================================================
+var chileCache = { indicadores: null, sismos: null, feriados: null };
+
+function vChile() {
+  // Cargar datos async si no están en cache
+  if (!chileCache.indicadores) { cargarChile(); }
+  return vChileContent();
+}
+
+function vChileContent() {
+  var h = '<h2>Chile</h2>';
+
+  // Indicadores económicos
+  var ind = chileCache.indicadores;
+  if (!ind) {
+    h += '<div class="kpis"><div class="kpi"><div class="num"><span class="spinner"></span></div><div class="lbl">Cargando...</div></div></div>';
+  } else {
+    h += '<div class="kpis">';
+    h += '<div class="kpi"><div class="num">'+fmtM(ind.uf?.valor)+'</div><div class="lbl">UF '+fmtFechaCorta(ind.uf?.fecha)+'</div></div>';
+    h += '<div class="kpi"><div class="num">'+fmtM(ind.utm?.valor)+'</div><div class="lbl">UTM '+fmtFechaCorta(ind.utm?.fecha)+'</div></div>';
+    h += '<div class="kpi"><div class="num">$'+(ind.dolar?.valor||0).toLocaleString('es-CL')+'</div><div class="lbl">Dólar '+fmtFechaCorta(ind.dolar?.fecha)+'</div></div>';
+    h += '<div class="kpi"><div class="num">$'+(ind.euro?.valor||0).toLocaleString('es-CL')+'</div><div class="lbl">Euro '+fmtFechaCorta(ind.euro?.fecha)+'</div></div>';
+    h += '</div>';
+  }
+
+  // Próximos feriados
+  h += '<h2>Próximos feriados</h2>';
+  var fer = chileCache.feriados;
+  if (!fer) {
+    h += '<div class="vacio"><span class="spinner"></span> Cargando...</div>';
+  } else if (fer.length === 0) {
+    h += '<div class="vacio">No hay más feriados este año.</div>';
+  } else {
+    fer.forEach(function(f) {
+      h += '<div class="item verde"><div><div class="tit">'+esc(f.nombre)+'</div>'+
+        '<div class="det">'+fmtF(f.fecha)+(f.irrenunciable?' · Irenunciable':'')+'</div></div>'+
+        '<span class="badge gris">'+esc(f.tipo||'')+'</span></div>';
+    });
+  }
+
+  // Últimos sismos
+  h += '<h2>Últimos sismos</h2>';
+  var sis = chileCache.sismos;
+  if (!sis) {
+    h += '<div class="vacio"><span class="spinner"></span> Cargando...</div>';
+  } else if (sis.length === 0) {
+    h += '<div class="vacio">Sin actividad sísmica reciente.</div>';
+  } else {
+    sis.forEach(function(s) {
+      var mag = parseFloat(s.magnitud) || 0;
+      var cls = mag >= 5 ? 'rojo' : mag >= 3.5 ? 'amarillo' : 'verde';
+      h += '<div class="item '+cls+'"><div><div class="tit">M'+esc(s.magnitud)+' · '+esc(s.ref)+'</div>'+
+        '<div class="det">'+esc(s.fecha)+' · profundidad '+esc(s.profundidad)+'</div></div>'+
+        '<span class="badge '+cls+'">'+esc(s.magnitud)+'</span></div>';
+    });
+  }
+
+  return h;
+}
+
+function fmtFechaCorta(f) {
+  if (!f) return '';
+  var s = String(f);
+  if (s.indexOf('T') >= 0) s = s.split('T')[0];
+  return s.slice(5, 10).replace('-', '/');
+}
+
+async function cargarChile() {
+  try {
+    var [ind, fer, sis] = await Promise.all([
+      api('/chile/indicadores').catch(function(){ return {data:null}; }),
+      api('/chile/feriados').catch(function(){ return {data:[]}; }),
+      api('/chile/sismos').catch(function(){ return {data:[]}; })
+    ]);
+    chileCache.indicadores = ind.data;
+    chileCache.feriados = fer.data;
+    chileCache.sismos = sis.data;
+    // Re-render solo si estamos en la pestaña Chile
+    if (S.tab === 'chile') render();
+  } catch (e) {
+    // silencioso
+  }
+}
+
+// ============================================================================
+// Vista: Usuarios (solo admin — con botones Agregar/Editar que abren modal)
+// ============================================================================
+function vUsuarios() {
+  if (USER.rol !== 'admin') return '<div class="vacio">Acceso restringido.</div>';
+  var h = '<div class="sec-head">' +
+    '<h2 style="margin:0">Usuarios ('+S.users.length+')</h2>' +
+    '<button class="btn sm" onclick="modalUser()">'+ico('➕')+'Crear usuario</button></div>';
+  h += '<div class="tabla-wrap" style="margin-top:12px"><table><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Vehículos</th><th>Estado</th><th></th></tr>';
+  S.users.forEach(function(u){
+    h += '<tr><td>'+esc(u.nombre)+'</td><td>'+esc(u.email)+'</td><td>'+(u.rol==='admin'?'Admin':'Usuario')+'</td>'+
+      '<td class="num-c">'+(u.vehiculos_count||0)+'</td>'+
+      '<td>'+(u.activo?'<span class="badge verde">Activo</span>':'<span class="badge gris">Inactivo</span>')+'</td>'+
+      '<td style="white-space:nowrap"><button class="btn sec sm" onclick="modalUser('+u.id+')" aria-label="Editar usuario">'+ico('✏️')+'</button> '+
+      '<button class="btn sec sm" onclick="asignarVeh('+u.id+',\''+esc(u.email).replace(/'/g,"\\'")+'\')">Vehículos</button> '+
+      '<button class="btn sec sm" onclick="modalApiKeys('+u.id+',\''+esc(u.email).replace(/'/g,"\\'")+'\')">🔑 API</button> '+
+      (u.id!==USER.id?btnEliminar('borrarUser('+u.id+',\''+esc(u.email).replace(/'/g,"\\'")+'\')','Eliminar usuario '+esc(u.email)):'')+
+      '</td></tr>';
+  });
+  return h + '</table></div>';
+}
+
+async function borrarUser(id, email) {
+  if (!confirm('¿Eliminar el usuario "'+email+'"?')) return;
+  try { await api('/usuarios/'+id, { method:'DELETE' }); toast('Usuario eliminado', 'ok'); var u = await api('/usuarios'); S.users = (u.data||[]).map(function(x){x.id=Number(x.id);return x;}); render(); }
+  catch (err) { toast(err.message, 'err'); }
+}
+
+// ============================================================================
+// SISTEMA DE MODALES — helper genérico reutilizable
+// abrirModal({ titulo, subtitulo, bodyHtml, textoSave, onSave, enctype })
+// onTapGuardar: async function(formData|elementos) → devuelve true si fue exitoso
+// ============================================================================
+var focoAntesModal = null;
+
+function abrirModal(opts) {
+  cerrarModal(); // cerrar cualquier modal previo
+  focoAntesModal = document.activeElement;
+
+  var enctypeAttr = opts.enctype ? ' enctype="' + opts.enctype + '"' : '';
+  var html = '<div class="modal-fondo" id="modal-bg">' +
+    '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">' +
+      '<div class="modal-head">' +
+        '<h3 id="modal-titulo">'+esc(opts.titulo||'Editar')+'</h3>' +
+        '<button class="cerrar-x" onclick="cerrarModal()" aria-label="Cerrar">'+ico('✕')+'</button>' +
+      '</div>' +
+      '<div class="modal-body">' +
+        (opts.subtitulo ? '<p style="font-size:var(--fs-sm);color:var(--text-3);margin-bottom:14px">'+esc(opts.subtitulo)+'</p>' : '') +
+        '<form id="modal-form"'+enctypeAttr+'>' + opts.bodyHtml + '</form>' +
+      '</div>' +
+      '<div class="modal-foot">' +
+        '<button class="btn sec" onclick="cerrarModal()">Cancelar</button>' +
+        '<button class="btn" id="modal-save">'+esc(opts.textoSave||'Guardar')+'</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  var div = document.createElement('div');
+  div.innerHTML = html;
+  document.body.appendChild(div.firstElementChild);
+
+  // Foco-trap + Escape
+  document.addEventListener('keydown', trapKey);
+  $('modal-bg').addEventListener('click', function(e) { if (e.target === $('modal-bg')) cerrarModal(); });
+
+  // Enfocar primer input
+  var firstInput = document.querySelector('.modal-body input, .modal-body select, .modal-body textarea');
+  if (firstInput) setTimeout(function(){ firstInput.focus(); }, 50);
+
+  // Submit: Enter envía el form → mismo que click en Guardar
+  $('modal-form').addEventListener('submit', function(e) { e.preventDefault(); $('modal-save').click(); });
+
+  // Botón guardar
+  $('modal-save').addEventListener('click', async function() {
+    var btn = $('modal-save');
+    var txtOriginal = btn.textContent;
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    try {
+      var ok = await opts.onSave();
+      if (ok !== false) cerrarModal();
+    } catch (err) {
+      toast(err.message, 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = txtOriginal;
+    }
+  });
+}
+
+function trapKey(e) {
+  if (e.key === 'Escape') { cerrarModal(); return; }
+  if (e.key !== 'Tab') return;
+  var modal = document.querySelector('.modal');
+  if (!modal) return;
+  var focussable = modal.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if (!focussable.length) return;
+  var first = focussable[0], last = focussable[focussable.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+
+function cerrarModal() {
+  var m = $('modal-bg');
+  if (m) m.remove();
+  document.removeEventListener('keydown', trapKey);
+  if (focoAntesModal && focoAntesModal.focus) focoAntesModal.focus();
+  focoAntesModal = null;
+}
+
+// Helper: leer valor de un campo del modal por id
+function mv(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+function mvNum(id) { var v = mv(id).trim(); return v ? Number(v) : null; }
+
+// ============================================================================
+// MODAL: Vehículo (crear / editar)
+// ============================================================================
+function modalVeh(id) {
+  var v = null;
+  if (id) { v = S.veh.find(function(x){ return Number(x.id) === Number(id); }); if (!v) return; }
+  var body = camposVeh(v);
+  abrirModal({
+    titulo: v ? 'Editar ' + (v.nombre || 'vehículo') : 'Agregar vehículo',
+    bodyHtml: body,
+    textoSave: v ? 'Actualizar' : 'Guardar',
+    onSave: async function() {
+      var body = {
+        nombre: mv('veh-nom').trim(), patente: mv('veh-pat').trim().toUpperCase() || null,
+        titular: mv('veh-tit').trim() || null, tipo: mv('veh-tipo'),
+        marca: mv('veh-marca').trim() || null, modelo: mv('veh-modelo').trim() || null,
+        anio: mvNum('veh-anio'), vin: mv('veh-vin').trim() || null,
+        motor: mv('veh-motor').trim() || null, color: mv('veh-color').trim() || null,
+        notas: mv('veh-notas').trim() || null,
+        gps_tipo: mv('veh-gps-tipo') || null,
+        gps_empresa: mv('veh-gps-empresa').trim() || null,
+        gps_device_id: mv('veh-gps-device').trim() || null,
+        gps_vence: mv('veh-gps-vence') || null
+      };
+      if (!body.nombre) { toast('El nombre es obligatorio', 'err'); return false; }
+      if (v) {
+        await api('/vehiculos/' + v.id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        toast('Vehículo actualizado', 'ok');
+      } else {
+        await api('/vehiculos', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        toast('Vehículo agregado a la flota', 'ok');
+      }
+      await cargarTodo(); render();
+    }
+  });
+}
+
+function camposVeh(v) {
+  return '' +
+    '<div class="campo"><label for="veh-nom">Nombre *</label><input id="veh-nom" required value="' + val(v,'nombre') + '"></div>' +
+    '<div class="campo campo-full-line"><div style="flex:1"><label for="veh-pat">Patente</label><input id="veh-pat" style="text-transform:uppercase" maxlength="8" value="' + val(v,'patente') + '"></div>' +
+    '<button type="button" class="btn sec sm" onclick="lookupPatenteModal()" id="veh-lookup-btn" style="min-height:44px">'+ico('🔍')+'Consultar</button></div>' +
+    '<div class="campo"><label for="veh-tit">Titular</label><input id="veh-tit" value="' + val(v,'titular') + '"></div>' +
+    '<div class="campo"><label for="veh-tipo">Tipo</label><select id="veh-tipo"><option value="calle"' + (v&&v.tipo==='calle'?' selected':'') + '>Calle</option><option value="deportivo"' + (v&&v.tipo==='deportivo'?' selected':'') + '>Deportivo (solo registro)</option></select></div>' +
+    '<div class="campo"><label for="veh-marca">Marca</label><input id="veh-marca" value="' + val(v,'marca') + '"></div>' +
+    '<div class="campo"><label for="veh-modelo">Modelo</label><input id="veh-modelo" value="' + val(v,'modelo') + '"></div>' +
+    '<div class="campo"><label for="veh-anio">Año</label><input id="veh-anio" type="number" value="' + val(v,'anio') + '"></div>' +
+    '<div class="campo"><label for="veh-vin">VIN / Chasis</label><input id="veh-vin" value="' + val(v,'vin') + '"></div>' +
+    '<div class="campo"><label for="veh-motor">Motor</label><input id="veh-motor" value="' + val(v,'motor') + '"></div>' +
+    '<div class="campo"><label for="veh-color">Color</label><input id="veh-color" value="' + val(v,'color') + '"></div>' +
+    '<div class="campo campo-full"><label for="veh-notas">Notas</label><textarea id="veh-notas" rows="2">' + val(v,'notas') + '</textarea></div>' +
+    // Sección GPS / Tracking
+    '<div class="campo-full" style="margin-top:4px">' +
+      '<div style="font-size:var(--fs-sm);color:var(--text-3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border-soft)">' + ico('📍') + 'GPS / Tracking</div>' +
+    '</div>' +
+    '<div class="campo"><label for="veh-gps-tipo">Tipo de dispositivo</label><select id="veh-gps-tipo" onchange="toggleGpsCampos()">' +
+      '<option value=""' + (v&&v.gps_tipo?'':' selected') + '>Sin dispositivo</option>' +
+      '<option value="airtag"' + (v&&v.gps_tipo==='airtag'?' selected':'') + '>AirTag</option>' +
+      '<option value="prepago"' + (v&&v.gps_tipo==='prepago'?' selected':'') + '>GPS Prepago (recargable)</option>' +
+      '<option value="suscripcion"' + (v&&v.gps_tipo==='suscripcion'?' selected':'') + '>GPS Suscripción mensual</option>' +
+    '</select></div>' +
+    '<div class="campo" id="gps-empresa-wrap"><label for="veh-gps-empresa">Empresa</label><input id="veh-gps-empresa" placeholder="Apple, SuiGPS, Movistar..." value="' + val(v,'gps_empresa') + '"></div>' +
+    '<div class="campo" id="gps-device-wrap"><label for="veh-gps-device">ID / N° dispositivo</label><input id="veh-gps-device" value="' + val(v,'gps_device_id') + '"></div>' +
+    '<div class="campo" id="gps-vence-wrap"><label for="veh-gps-vence">Vence / Recarga</label><input id="veh-gps-vence" type="date" value="' + val(v,'gps_vence') + '"></div>';
+}
+
+// Mostrar/ocultar campos GPS según tipo seleccionado
+function toggleGpsCampos() {
+  var tipo = mv('veh-gps-tipo');
+  var showBasic = tipo && tipo !== '';
+  var showVence = tipo === 'prepago' || tipo === 'suscripcion';
+  var disp = function(id, show) { var el = document.getElementById(id); if (el) el.style.display = show ? '' : 'none'; };
+  disp('gps-empresa-wrap', showBasic);
+  disp('gps-device-wrap', showBasic);
+  disp('gps-vence-wrap', showVence);
+}
+function val(obj, key) { return esc(obj && obj[key] != null ? obj[key] : ''); }
+
+async function lookupPatenteModal() {
+  var pat = mv('veh-pat').trim().toUpperCase();
+  if (!pat) { toast('Escribe una patente para consultar', 'err'); return; }
+  var btn = document.getElementById('veh-lookup-btn');
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+  try {
+    var d = await api('/vehiculos/lookup/' + pat);
+    var info = d.data;
+    if (info.marca) setVal('veh-marca', info.marca);
+    if (info.modelo) setVal('veh-modelo', info.modelo);
+    if (info.anio) setVal('veh-anio', info.anio);
+    if (info.vin) setVal('veh-vin', info.vin);
+    if (info.motor) setVal('veh-motor', info.motor);
+    if (info.color) setVal('veh-color', info.color);
+    if (info.titular) setVal('veh-tit', info.titular);
+    if (info.marca && !mv('veh-nom')) setVal('veh-nom', (info.marca + ' ' + (info.modelo||'')).trim());
+    // Mensaje con fuente y datos extra
+    var extra = [];
+    if (info.combustible) extra.push(info.combustible);
+    if (info.kilometraje) extra.push(Number(info.kilometraje).toLocaleString('es-CL') + ' km');
+    if (info.revision_tecnica && info.revision_tecnica.vence) extra.push('RT vence ' + info.revision_tecnica.vence);
+    var fuenteTxt = info.fuente === 'autoriesgo' ? 'AutoRiesgo' : 'Boostr';
+    var msg = 'Datos cargados desde ' + fuenteTxt;
+    if (extra.length) msg += ' (' + extra.join(' · ') + ')';
+    toast(msg, 'ok');
+  } catch (err) { toast(err.message || 'No se pudo consultar la patente', 'err'); }
+  finally { btn.innerHTML = ico('🔍')+'Consultar'; btn.disabled = false; }
+}
+function setVal(id, v) { var el = document.getElementById(id); if (el) el.value = v; }
+
+// ============================================================================
+// MODAL: Documento (crear / editar)
+// ============================================================================
+function modalDoc(id) {
+  var d = null;
+  if (id) { d = S.docs.find(function(x){ return Number(x.id) === Number(id); }); if (!d) return; }
+  var v = d ? S.veh.find(function(x){ return Number(x.id) === Number(d.vehiculo_id); }) : null;
+
+  var body =
+    (d
+      ? '<div class="campo-full" style="background:var(--bg);border-radius:8px;padding:10px 14px;border:1px solid var(--border-soft);margin-bottom:4px">📄 <strong style="color:var(--brand-text)">'+esc(v?v.nombre:'')+'</strong>'+(v&&v.patente?' · '+esc(v.patente):'')+'</div>'
+      : '<div class="campo campo-full">' + selVehCampo('doc-veh', null) + '</div>') +
+    '<div class="campo"><label for="doc-tipo">Tipo *</label><select id="doc-tipo">' + Object.keys(TIPOS).map(function(t){ return '<option value="'+t+'"'+(d&&d.tipo===t?' selected':'')+'>'+TIPOS[t]+'</option>'; }).join('') + '</select></div>' +
+    '<div class="campo"><label for="doc-vence">Vence</label><input id="doc-vence" type="date" value="' + val(d,'vence') + '"></div>' +
+    '<div class="campo campo-full"><label for="doc-desc">Descripción</label><input id="doc-desc" value="' + val(d,'descripcion') + '"></div>' +
+    '<div class="campo campo-full"><label for="doc-file">Archivo PDF o imagen (máx 25MB)' + (d&&d.archivo_path ? ' (ya tiene archivo)' : '') + '</label><input id="doc-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" onchange="toggleAnalizarIA()"></div>' +
+    '<div class="campo-full" id="ia-analizar-wrap" style="display:none;margin-top:-4px"><button type="button" class="btn sec sm" onclick="analizarDocIA()" id="btn-ia-analizar" style="width:100%">'+ico('🤖')+'Analizar con IA</button></div>';
+
+  abrirModal({
+    titulo: d ? 'Editar documento' : 'Agregar documento',
+    enctype: 'multipart/form-data',
+    bodyHtml: body,
+    textoSave: d ? 'Actualizar' : 'Guardar',
+    onSave: async function() {
+      var vid = d ? d.vehiculo_id : Number(mv('doc-veh'));
+      if (!vid) { toast('Selecciona un vehículo', 'err'); return false; }
+      var fd = new FormData();
+      fd.append('tipo', mv('doc-tipo'));
+      fd.append('descripcion', mv('doc-desc'));
+      fd.append('vence', mv('doc-vence'));
+      var file = document.getElementById('doc-file').files[0];
+      if (file) fd.append('archivo', file);
+      if (d) {
+        await api('/documentos/' + d.id, { method:'PUT', body: fd });
+        toast('Documento actualizado', 'ok');
+      } else {
+        fd.append('vehiculo_id', vid);
+        await api('/documentos', { method:'POST', body: fd });
+        toast('Documento registrado', 'ok');
+      }
+      await cargarTodo(); render();
+    }
+  });
+}
+
+// Mostrar/ocultar botón Analizar IA según si hay archivo seleccionado
+function toggleAnalizarIA() {
+  var file = document.getElementById('doc-file');
+  var wrap = document.getElementById('ia-analizar-wrap');
+  if (!wrap) return;
+  wrap.style.display = (file && file.files.length > 0) ? '' : 'none';
+}
+
+// Analizar documento con GPT-4o Vision
+async function analizarDocIA() {
+  var fileInput = document.getElementById('doc-file');
+  if (!fileInput || !fileInput.files.length) { toast('Selecciona un archivo primero', 'err'); return; }
+  var btn = document.getElementById('btn-ia-analizar');
+  var txtOriginal = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Analizando...';
+  try {
+    var fd = new FormData();
+    fd.append('archivo', fileInput.files[0]);
+    var r = await api('/documentos/analizar', { method: 'POST', body: fd });
+    var d = r.data;
+    // Precargar campos detectados
+    if (d.tipo) { var sel = document.getElementById('doc-tipo'); if (sel) sel.value = d.tipo; }
+    if (d.vence) { var dt = document.getElementById('doc-vence'); if (dt) dt.value = d.vence; }
+    if (d.descripcion) { var dd = document.getElementById('doc-desc'); if (dd) dd.value = d.descripcion; }
+    // Auto-seleccionar vehículo por patente si coincide
+    if (d.patente) {
+      var patenteNorm = d.patente.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      var vehSelect = document.getElementById('doc-veh');
+      if (vehSelect) {
+        for (var i = 0; i < vehSelect.options.length; i++) {
+          var optPat = (vehSelect.options[i].text || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+          if (optPat.indexOf(patenteNorm) >= 0) { vehSelect.selectedIndex = i; break; }
+        }
+      }
+    }
+    // Feedback
+    var extras = [];
+    if (d.patente) extras.push('patente ' + d.patente);
+    if (d.titular) extras.push('titular detectado');
+    if (d.confianza === 'baja') extras.push('confianza baja — revisa los datos');
+    toast('Documento analizado: ' + (TIPOS[d.tipo] || 'detectado') + (extras.length ? ' (' + extras.join(', ') + ')' : ''),
+          d.confianza === 'baja' ? '' : 'ok');
+  } catch (err) {
+    toast('No se pudo analizar: ' + err.message, 'err');
+  } finally {
+    btn.disabled = false; btn.innerHTML = txtOriginal;
+  }
+}
+
+function selVehCampo(id, sel) {
+  return '<label for="'+id+'">Vehículo *</label><select id="'+id+'">' + S.veh.map(function(v){
+    return '<option value="'+v.id+'"'+(Number(sel)===Number(v.id)?' selected':'')+'>'+esc(v.nombre+(v.patente?' · '+v.patente:''))+'</option>';
+  }).join('') + '</select>';
+}
+
+// ============================================================================
+// MODAL: Mantención (crear / editar)
+// ============================================================================
+function modalMant(id) {
+  var m = null;
+  if (id) { m = S.mant.find(function(x){ return Number(x.id) === Number(id); }); if (!m) return; }
+  var body =
+    '<div class="campo campo-full">' + selVehCampo('mant-veh', m ? m.vehiculo_id : null) + '</div>' +
+    '<div class="campo"><label for="mant-fecha">Fecha *</label><input id="mant-fecha" type="date" value="' + (m ? m.fecha : new Date().toISOString().slice(0,10)) + '"></div>' +
+    '<div class="campo"><label for="mant-tipo">Tipo</label><input id="mant-tipo" value="' + val(m,'tipo') + '" placeholder="Cambio de aceite"></div>' +
+    '<div class="campo"><label for="mant-km">Kilometraje</label><input id="mant-km" type="number" value="' + val(m,'kilometraje') + '"></div>' +
+    '<div class="campo"><label for="mant-costo">Costo (CLP)</label><input id="mant-costo" type="number" value="' + val(m,'costo') + '"></div>' +
+    '<div class="campo campo-full"><label for="mant-desc">Descripción</label><input id="mant-desc" value="' + val(m,'descripcion') + '"></div>';
+  abrirModal({
+    titulo: m ? 'Editar mantención' : 'Registrar mantención',
+    bodyHtml: body,
+    textoSave: m ? 'Actualizar' : 'Guardar',
+    onSave: async function() {
+      var body = {
+        vehiculo_id: Number(mv('mant-veh')), fecha: mv('mant-fecha'),
+        tipo: mv('mant-tipo').trim() || null, descripcion: mv('mant-desc').trim() || null,
+        kilometraje: mvNum('mant-km'), costo: mvNum('mant-costo')
+      };
+      if (m) {
+        await api('/mantenciones/' + m.id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        toast('Mantención actualizada', 'ok');
+      } else {
+        await api('/mantenciones', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        toast('Mantención registrada', 'ok');
+      }
+      await cargarTodo(); render();
+    }
+  });
+}
+
+// ============================================================================
+// MODAL: Gasto (crear / editar)
+// ============================================================================
+function modalGasto(id) {
+  var g = null;
+  if (id) { g = S.gas.find(function(x){ return Number(x.id) === Number(id); }); if (!g) return; }
+  var body =
+    '<div class="campo campo-full">' + selVehCampo('gas-veh', g ? g.vehiculo_id : null) + '</div>' +
+    '<div class="campo"><label for="gas-fecha">Fecha *</label><input id="gas-fecha" type="date" value="' + (g ? g.fecha : new Date().toISOString().slice(0,10)) + '"></div>' +
+    '<div class="campo"><label for="gas-cat">Categoría</label><select id="gas-cat">' + Object.keys(CATS).map(function(c){ return '<option value="'+c+'"'+(g&&g.categoria===c?' selected':'')+'>'+CATS[c]+'</option>'; }).join('') + '</select></div>' +
+    '<div class="campo"><label for="gas-monto">Monto (CLP) *</label><input id="gas-monto" type="number" required value="' + val(g,'monto') + '"></div>' +
+    '<div class="campo campo-full"><label for="gas-desc">Descripción</label><input id="gas-desc" value="' + val(g,'descripcion') + '"></div>';
+  abrirModal({
+    titulo: g ? 'Editar gasto' : 'Registrar gasto',
+    bodyHtml: body,
+    textoSave: g ? 'Actualizar' : 'Guardar',
+    onSave: async function() {
+      var body = {
+        vehiculo_id: Number(mv('gas-veh')), fecha: mv('gas-fecha'),
+        categoria: mv('gas-cat'), descripcion: mv('gas-desc').trim() || null,
+        monto: mvNum('gas-monto')
+      };
+      if (!body.monto) { toast('El monto es obligatorio', 'err'); return false; }
+      if (g) {
+        await api('/gastos/' + g.id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        toast('Gasto actualizado', 'ok');
+      } else {
+        await api('/gastos', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        toast('Gasto registrado', 'ok');
+      }
+      await cargarTodo(); render();
+    }
+  });
+}
+
+// ============================================================================
+// MODAL: Usuario (crear / editar)
+// ============================================================================
+function modalUser(id) {
+  var u = null;
+  if (id) { u = S.users.find(function(x){ return Number(x.id) === Number(id); }); if (!u) return; }
+  var body =
+    '<div class="campo"><label for="usr-nom">Nombre *</label><input id="usr-nom" required value="' + val(u,'nombre') + '"></div>' +
+    '<div class="campo"><label for="usr-email">Email *</label><input id="usr-email" type="email" required value="' + val(u,'email') + '"></div>' +
+    '<div class="campo"><label for="usr-rol">Rol</label><select id="usr-rol"><option value="usuario"' + (u&&u.rol==='usuario'?' selected':'') + '>Usuario</option><option value="admin"' + (u&&u.rol==='admin'?' selected':'') + '>Admin</option></select></div>' +
+    '<div class="campo"><label for="usr-pass">Contraseña ' + (u ? '(vacío = sin cambio)' : '(min 6)') + '</label><input id="usr-pass" type="password" placeholder="' + (u ? 'mantener actual' : 'mínimo 6 caracteres') + '"></div>' +
+    '<div class="campo"><label for="usr-activo">Activo</label><select id="usr-activo"><option value="true"' + (!u||u.activo?' selected':'') + '>Sí</option><option value="false"' + (u&&!u.activo?' selected':'') + '>No</option></select></div>';
+  abrirModal({
+    titulo: u ? 'Editar ' + u.nombre : 'Crear usuario',
+    bodyHtml: body,
+    textoSave: u ? 'Actualizar' : 'Crear',
+    onSave: async function() {
+      var body = {
+        nombre: mv('usr-nom').trim(), email: mv('usr-email').trim(),
+        rol: mv('usr-rol'), activo: mv('usr-activo') === 'true'
+      };
+      var pass = mv('usr-pass');
+      if (pass) body.password = pass;
+      if (!body.nombre || !body.email) { toast('Nombre y email son obligatorios', 'err'); return false; }
+      if (u) {
+        await api('/usuarios/' + u.id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        toast('Usuario actualizado', 'ok');
+      } else {
+        if (!pass) { toast('La contraseña es obligatoria al crear', 'err'); return false; }
+        await api('/usuarios', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        toast('Usuario creado', 'ok');
+      }
+      var r = await api('/usuarios'); S.users = (r.data||[]).map(function(x){x.id=Number(x.id);return x;}); render();
+    }
+  });
+}
+
+// ============================================================================
+// MODAL: Asignación de vehículos a usuario
+// ============================================================================
+async function asignarVeh(userId, email) {
+  var asignadas = [];
+  try { var r = await api('/usuarios/'+userId+'/vehiculos'); asignadas = r.data.map(Number); } catch {}
+  var checks = S.veh.map(function(v){
+    return '<label><input type="checkbox" value="'+v.id+'" '+(asignadas.indexOf(v.id)>=0?'checked':'')+'> '+esc(v.nombre+(v.patente?' · '+v.patente:''))+'</label>';
+  }).join('');
+  abrirModal({
+    titulo: 'Vehículos de ' + email,
+    subtitulo: 'Marca los vehículos que este usuario puede ver. Los admins siempre ven todos.',
+    bodyHtml: '<div class="check-grid">'+checks+'</div>',
+    textoSave: 'Guardar',
+    onSave: async function() {
+      var ids = Array.from(document.querySelectorAll('#modal-bg input[type=checkbox]:checked')).map(function(c){return Number(c.value);});
+      await api('/usuarios/'+userId+'/vehiculos', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ vehiculos: ids }) });
+      toast('Accesos actualizados', 'ok');
+      var r = await api('/usuarios'); S.users = (r.data||[]).map(function(x){x.id=Number(x.id);return x;}); render();
+    }
+  });
+}
+
+// ============================================================================
+// Modal: Gestión de API Keys por usuario
+// ============================================================================
+async function modalApiKeys(userId, email) {
+  var keys = [];
+  try { var r = await api('/usuarios/'+userId+'/api-keys'); keys = r.data || []; } catch {}
+
+  var keysHtml = keys.length ? keys.map(function(k) {
+    var scopes = (k.scopes||[]).join(', ');
+    var estado = k.activa ? '<span class="badge verde">Activa</span>' : '<span class="badge gris">Revocada</span>';
+    var vence = k.expires_at ? '<span style="color:var(--text-3)">Vence: '+fmtF(k.expires_at)+'</span>' : '';
+    var ultimo = k.ultimo_uso ? '<span style="color:var(--text-3)">Último uso: '+fmtFH(k.ultimo_uso)+'</span>' : '<span style="color:var(--text-3)">Sin uso aún</span>';
+    return '<div class="item" style="margin-bottom:8px">' +
+      '<div style="flex:1"><div class="tit">'+esc(k.nombre)+'</div>' +
+      '<div class="det" style="font-family:JetBrains Mono,monospace">'+esc(k.key_prefix)+'</div>' +
+      '<div class="det">Scopes: '+esc(scopes)+' · '+ultimo+(vence?' · '+vence:'')+'</div></div>' +
+      estado +
+      (k.activa ? '<button class="btn rojo sm" onclick="revocarApiKey('+userId+','+k.id+')" style="margin-left:8px">Revocar</button>' : '') +
+    '</div>';
+  }).join('') : '<div class="vacio">Sin API keys. Crea una para permitir acceso programático (agentes IA, automatizaciones).</div>';
+
+  abrirModal({
+    titulo: '🔑 API Keys de ' + email,
+    subtitulo: 'Las API keys permiten a agentes IA y automatizaciones consultar y actualizar la flota.',
+    bodyHtml:
+      keysHtml +
+      '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border-soft">' +
+        '<div style="font-size:var(--fs-sm);color:var(--text-3);text-transform:uppercase;margin-bottom:8px">Crear nueva API key</div>' +
+        '<div class="campo"><label for="ak-nombre">Nombre descriptivo</label><input id="ak-nombre" placeholder="Agente IA, n8n, script backup..."></div>' +
+        '<div class="campo"><label for="ak-scopes">Permisos</label><select id="ak-scopes">' +
+          '<option value="read,write">Lectura y escritura</option>' +
+          '<option value="read">Solo lectura</option>' +
+        '</select></div>' +
+      '</div>',
+    textoSave: 'Crear API key',
+    onSave: async function() {
+      var nombre = mv('ak-nombre').trim();
+      if (!nombre) { toast('El nombre es obligatorio', 'err'); return false; }
+      var scopes = mv('ak-scopes').split(',');
+      var r = await api('/usuarios/'+userId+'/api-keys', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ nombre: nombre, scopes: scopes })
+      });
+      // Mostrar la key UNA sola vez en un modal de copia
+      cerrarModal();
+      setTimeout(function() { modalMostrarKey(r.api_key, r.data.nombre); }, 100);
+    }
+  });
+}
+
+// Modal: mostrar API key recién creada (una sola vez)
+function modalMostrarKey(apiKey, nombre) {
+  abrirModal({
+    titulo: '🔑 API key creada',
+    subtitulo: 'Copia esta key ahora. Por seguridad no se volverá a mostrar.',
+    bodyHtml:
+      '<div style="background:var(--bg);border:1px solid var(--brand-text);border-radius:8px;padding:14px;margin-bottom:12px">' +
+        '<div style="font-size:var(--fs-sm);color:var(--text-3);margin-bottom:6px">'+esc(nombre)+'</div>' +
+        '<code style="font-family:JetBrains Mono,monospace;font-size:var(--fs-sm);word-break:break-all;color:var(--brand-text)">'+esc(apiKey)+'</code>' +
+      '</div>' +
+      '<div style="font-size:var(--fs-sm);color:var(--text-3);margin-bottom:8px">Uso: agrega el header <code>X-API-Key</code> a tus requests:</div>' +
+      '<pre style="background:var(--bg);padding:10px;border-radius:6px;font-size:0.75rem;overflow-x:auto">curl -H "X-API-Key: '+esc(apiKey)+'" \\\n  https://autos.cmdspa.com/api/agent/vehiculos</pre>' +
+      '<div style="font-size:var(--fs-sm);color:var(--text-3)">Descubrir endpoints: <code>GET /api/agent</code></div>',
+    textoSave: 'Copiar y cerrar',
+    onSave: async function() {
+      // Intentar copiar al portapapeles
+      try {
+        await navigator.clipboard.writeText(apiKey);
+        toast('API key copiada al portapapeles', 'ok');
+      } catch {
+        toast('API key creada', 'ok');
+      }
+    }
+  });
+}
+
+async function revocarApiKey(userId, keyId) {
+  if (!confirm('¿Revocar esta API key? Las aplicaciones que la usen perderán acceso inmediatamente.')) return;
+  try {
+    await api('/usuarios/'+userId+'/api-keys/'+keyId, { method: 'DELETE' });
+    toast('API key revocada', 'ok');
+    // Re-abrir el modal actualizado
+    var u = S.users.find(function(x){ return Number(x.id) === Number(userId); });
+    modalApiKeys(userId, u ? u.email : '');
+  } catch (err) { toast('Error: ' + err.message, 'err'); }
+}
+
+// ============================================================================
+// Bootstrap
+// ============================================================================
+(async function() {
+  var ok = await intentarRefresh();
+  if (ok) iniciar();
+})();
+
+// Easter egg: mensaje para curiosos en la consola
+console.log('%c🚗 CMD Servicios Tecnológicos SpA', 'font-size:20px;font-weight:700;color:#00eaff;');
+console.log('%cGestión de Flota Vehicular — ¿Revisando el código? Bienvenido.', 'color:#7c89a8;');
+
+// ============================================================================
+// PWA — registro del Service Worker
+// ============================================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').catch(function() {});
+  });
+}
+
+// ============================================================================
+// NEURAL BACKGROUND — red neuronal animada (efecto brand CMD)
+// Nodos que derivan + conexiones tipo sinapsis que se encienden al activarse.
+// GPU-friendly: solo pinta opacidad (no recrea geometría cada frame).
+// ============================================================================
+(function neuralBackground() {
+  var canvas = document.getElementById('neural-bg');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  // Color del neural leído del token CSS (adaptativo dark/light)
+  function getNeuralRGB() {
+    var raw = getComputedStyle(document.documentElement).getPropertyValue('--neural-color').trim();
+    return raw || '0, 234, 255';
+  }
+  var neuralRGB = getNeuralRGB();
+
+  var W, H, nodos = [];
+  var MAX_NODOS = 70;
+  var DIST_CONEXION = 160;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;
+
+  function redimensionar() {
+    W = canvas.width = window.innerWidth * dpr;
+    H = canvas.height = window.innerHeight * dpr;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    // Adaptar densidad de nodos al área (menos nodos en móvil para performance)
+    var area = (W * H) / (dpr * dpr);
+    MAX_NODOS = area < 500000 ? 35 : area < 1200000 ? 55 : 75;
+    DIST_CONEXION = (Math.min(W, H) / dpr) * 0.28;
+  }
+
+  function initNodos() {
+    nodos = [];
+    for (var i = 0; i < MAX_NODOS; i++) {
+      nodos.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.3 * dpr,
+        vy: (Math.random() - 0.5) * 0.3 * dpr,
+        r: (Math.random() * 2 + 1.2) * dpr,
+        // pulso: cada nodo tiene un ciclo de "activación" independiente
+        pulso: Math.random() * Math.PI * 2,
+        pulsoVel: 0.01 + Math.random() * 0.02,
+      });
+    }
+  }
+
+  var t = 0;
+  function dibujar() {
+    ctx.clearRect(0, 0, W, H);
+    t += 0.016;
+
+    // Mover nodos
+    for (var i = 0; i < nodos.length; i++) {
+      var n = nodos[i];
+      n.x += n.vx;
+      n.y += n.vy;
+      n.pulso += n.pulsoVel;
+      // Rebotar en bordes
+      if (n.x < 0 || n.x > W) n.vx *= -1;
+      if (n.y < 0 || n.y > H) n.vy *= -1;
+    }
+
+    // Dibujar conexiones (sinapsis) — solo entre nodos cercanos
+    for (var a = 0; a < nodos.length; a++) {
+      var na = nodos[a];
+      for (var b = a + 1; b < nodos.length; b++) {
+        var nb = nodos[b];
+        var dx = na.x - nb.x;
+        var dy = na.y - nb.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < DIST_CONEXION * dpr) {
+          // Opacidad inversamente proporcional a la distancia
+          var baseOp = (1 - dist / (DIST_CONEXION * dpr)) * 0.4;
+          // Pulso de sinapsis: la conexión se enciende cuando ambos nodos están "activos"
+          var sinapsis = (Math.sin(na.pulso) + Math.sin(nb.pulso)) * 0.5;
+          var op = baseOp * (0.3 + Math.max(0, sinapsis) * 1.2);
+          if (op > 0.01) {
+            ctx.strokeStyle = 'rgba(' + neuralRGB + ', ' + op + ')';
+            ctx.lineWidth = 1 * dpr;
+            ctx.beginPath();
+            ctx.moveTo(na.x, na.y);
+            ctx.lineTo(nb.x, nb.y);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    // Dibujar nodos — glow cuando están en pico de activación
+    for (var k = 0; k < nodos.length; k++) {
+      var nd = nodos[k];
+      var activacion = Math.sin(nd.pulso);
+      var radio = nd.r * (1 + Math.max(0, activacion) * 0.8);
+      var opNodo = 0.5 + Math.max(0, activacion) * 0.5;
+
+      // Glow halo amplio
+      if (activacion > 0.3) {
+        var glowOp = (activacion - 0.3) * 0.35;
+        ctx.fillStyle = 'rgba(' + neuralRGB + ', ' + glowOp + ')';
+        ctx.beginPath();
+        ctx.arc(nd.x, nd.y, radio * 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Núcleo brillante
+      ctx.fillStyle = 'rgba(' + neuralRGB + ', ' + opNodo + ')';
+      ctx.beginPath();
+      ctx.arc(nd.x, nd.y, radio, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    requestAnimationFrame(dibujar);
+  }
+
+  redimensionar();
+  initNodos();
+  dibujar();
+
+  var rt;
+  window.addEventListener('resize', function() {
+    clearTimeout(rt);
+    rt = setTimeout(function() { redimensionar(); initNodos(); }, 200);
+  });
+  // Actualizar color cuando cambia el tema
+  document.addEventListener('themeChanged', function() { neuralRGB = getNeuralRGB(); });
+
+  // Pausar cuando la pestaña no es visible (ahorro de CPU)
+
+})();
+
+// ============================================================================
+// PULSE FEEDBACK — ondas de pulso al hacer acciones exitosas (tipo sinapsis)
+// ============================================================================
+(function pulseFeedback() {
+  // Escuchar clicks en botones principales y disparar un ripple neural
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.btn:not(.sec):not(.rojo):not(:disabled)');
+    if (!btn) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var rect = btn.getBoundingClientRect();
+    var ripple = document.createElement('span');
+    ripple.style.cssText = [
+      'position:fixed',
+      'left:' + (rect.left + rect.width / 2) + 'px',
+      'top:' + (rect.top + rect.height / 2) + 'px',
+      'width:8px', 'height:8px',
+      'border-radius:50%',
+      'background:rgba(0,234,255,0.5)',
+      'pointer-events:none',
+      'z-index:9999',
+      'transform:translate(-50%,-50%)',
+      'animation:ripple-neural 0.6s ease-out forwards',
+    ].join(';');
+    document.body.appendChild(ripple);
+    setTimeout(function() { ripple.remove(); }, 650);
+  });
+
+  // Inyectar keyframe del ripple si no existe
+  if (!document.getElementById('ripple-kf')) {
+    var st = document.createElement('style');
+    st.id = 'ripple-kf';
+    st.textContent = '@keyframes ripple-neural {' +
+      '0%{transform:translate(-50%,-50%) scale(1);opacity:0.6}' +
+      '100%{transform:translate(-50%,-50%) scale(12);opacity:0}' +
+      '}';
+    document.head.appendChild(st);
+  }
+})();
+</script>
+</body>
+</html>
