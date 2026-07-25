@@ -1191,7 +1191,7 @@ async function intentarRefresh() {
 // ============================================================================
 // Estado
 // ============================================================================
-var S = { veh: [], docs: [], mant: [], gas: [], users: [], tab: 'flota', resumen: null, verVeh: null };
+var S = { veh: [], docs: [], mant: [], gas: [], users: [], empresas: [], tab: 'flota', resumen: null, verVeh: null };
 var TIPOS = { soap: 'SOAP', permiso_circulacion: 'Permiso de Circulación', revision_tecnica: 'Revisión Técnica', seguro: 'Seguro', registro: 'Registro', otro: 'Otro' };
 var CATS = { combustible: 'Combustible', seguro: 'Seguro', patente: 'Patente', mantencion: 'Mantención', peaje: 'Peaje', repuestos: 'Repuestos', accesorios: 'Accesorios', otro: 'Otro' };
 
@@ -1335,7 +1335,7 @@ async function iniciar() {
   $('login').style.display = 'none';
   $('app').style.display = 'block';
   $('u-nombre').textContent = USER.nombre;
-  $('u-rol').textContent = USER.rol === 'admin' ? 'Admin' : 'Usuario';
+  $('u-rol').textContent = USER.rol === 'super_admin' ? 'Super Admin' : USER.rol === 'admin' ? 'Admin' : 'Usuario';
   // Saludo dinámico según hora
   var h = new Date().getHours();
   var saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
@@ -1358,8 +1358,11 @@ async function cargarTodo() {
   S.mant = (mant.data||[]).map(function(m){m.id=Number(m.id);m.vehiculo_id=Number(m.vehiculo_id);return m;});
   S.gas = (gas.data||[]).map(function(g){g.id=Number(g.id);g.vehiculo_id=Number(g.vehiculo_id);return g;});
   S.resumen = res.data;
-  if (USER.rol === 'admin') {
+  if (USER.rol === 'admin' || USER.rol === 'super_admin') {
     try { var u = await api('/usuarios'); S.users = (u.data||[]).map(function(x){x.id=Number(x.id);return x;}); } catch { S.users = []; }
+  }
+  if (USER.rol === 'super_admin') {
+    try { var emps = await api('/empresas'); S.empresas = (emps.data||[]).map(function(e){e.id=Number(e.id);return e;}); } catch { S.empresas = []; }
   }
 }
 
@@ -1370,12 +1373,13 @@ var TAB_DEFS = [['flota','Flota'],['resumen','Resumen'],['documentos','Documento
 
 function render() {
   var tabs = TAB_DEFS.slice();
-  if (USER.rol === 'admin') tabs.push(['usuarios','Usuarios']);
+  if (USER.rol === 'admin' || USER.rol === 'super_admin') tabs.push(['usuarios','Usuarios']);
+  if (USER.rol === 'super_admin') tabs.push(['empresas','Empresas']);
   $('tabs').innerHTML = tabs.map(function(t){
     var sel = S.tab === t[0];
     return '<button role="tab" id="tab-'+t[0]+'" aria-selected="'+sel+'" aria-controls="panel-'+t[0]+'" tabindex="'+(sel?'0':'-1')+'" onclick="irA(\''+t[0]+'\')">'+t[1]+'</button>';
   }).join('');
-  var f = { resumen: vResumen, flota: vFlota, documentos: vDocs, mantenciones: vMant, gastos: vGastos, chile: vChile, usuarios: vUsuarios, ficha: vFichaVeh };
+  var f = { resumen: vResumen, flota: vFlota, documentos: vDocs, mantenciones: vMant, gastos: vGastos, chile: vChile, usuarios: vUsuarios, ficha: vFichaVeh, empresas: vEmpresas };
   $('view').innerHTML = '<section role="tabpanel" id="panel-'+S.tab+'" aria-labelledby="tab-'+S.tab+'">' + f[S.tab]() + '</section>';
   // Disparar count-up de KPIs cuando se muestra el resumen
   if (S.tab === 'resumen') {
@@ -1883,6 +1887,82 @@ async function cargarChile() {
   } catch (e) {
     // silencioso
   }
+}
+
+// ============================================================================
+// Vista: Empresas (solo super_admin — gestión multi-tenant)
+// ============================================================================
+function vEmpresas() {
+  if (USER.rol !== 'super_admin') return '<div class="vacio">Acceso restringido.</div>';
+  var h = '<div class="sec-head">' +
+    '<h2 style="margin:0">Empresas</h2>' +
+    '<button class="btn sm" onclick="modalEmpresa()">'+ico('➕')+'Nueva empresa</button></div>';
+  h += '<div class="tabla-wrap" style="margin-top:12px"><table>';
+  h += '<tr><th>Empresa</th><th>Plan</th><th>Usuarios</th><th>Vehículos</th><th>Estado</th><th></th></tr>';
+  (S.empresas || []).forEach(function(e){
+    h += '<tr><td><strong>'+esc(e.nombre)+'</strong>'+(e.rut?'<div class="det">'+esc(e.rut)+'</div>':'')+'</td>' +
+      '<td>'+esc(e.plan||'basico')+'</td>' +
+      '<td class="num-c">'+(e.usuarios_count||0)+'</td>' +
+      '<td class="num-c">'+(e.vehiculos_count||0)+'</td>' +
+      '<td>'+(e.activa?'<span class="badge verde">Activa</span>':'<span class="badge gris">Inactiva</span>')+'</td>' +
+      '<td><button class="btn sec sm" onclick="modalEmpresa('+e.id+')">'+ico('✏️')+'</button></td></tr>';
+  });
+  h += '</table></div>';
+  return h;
+}
+
+async function modalEmpresa(id) {
+  var e = null;
+  if (id) { e = (S.empresas || []).find(function(x){ return Number(x.id) === Number(id); }); if (!e) return; }
+  var body =
+    '<div class="campo"><label for="emp-nombre">Nombre *</label><input id="emp-nombre" required value="' + val(e,'nombre') + '"></div>' +
+    '<div class="campo"><label for="emp-rut">RUT</label><input id="emp-rut" placeholder="76.xxx.xxx-x" value="' + val(e,'rut') + '"></div>' +
+    '<div class="campo"><label for="emp-plan">Plan</label><select id="emp-plan">' +
+      '<option value="basico"' + (e&&e.plan==='basico'?' selected':'') + '>Básico</option>' +
+      '<option value="pro"' + (e&&e.plan==='pro'?' selected':'') + '>Pro</option>' +
+      '<option value="enterprise"' + (e&&e.plan==='enterprise'?' selected':'') + '>Enterprise</option>' +
+    '</select></div>';
+  if (!e) {
+    // Al crear empresa: pedir admin inicial
+    body += '<div class="campo-full" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-soft)"><div style="font-size:var(--fs-sm);color:var(--text-3);text-transform:uppercase">Admin inicial de la empresa</div></div>' +
+      '<div class="campo"><label for="emp-admin-email">Email admin *</label><input id="emp-admin-email" type="email" required></div>' +
+      '<div class="campo"><label for="emp-admin-nombre">Nombre admin</label><input id="emp-admin-nombre" placeholder="Admin"></div>' +
+      '<div class="campo"><label for="emp-admin-pass">Contraseña admin *</label><input id="emp-admin-pass" type="password" required placeholder="mínimo 6 caracteres"></div>';
+  }
+  abrirModal({
+    titulo: e ? 'Editar ' + e.nombre : 'Nueva empresa',
+    bodyHtml: body,
+    textoSave: e ? 'Actualizar' : 'Crear empresa',
+    onSave: async function() {
+      var nombre = mv('emp-nombre').trim();
+      if (!nombre) { toast('El nombre es obligatorio', 'err'); return false; }
+      var bodyReq = { nombre: nombre, rut: mv('emp-rut').trim() || null, plan: mv('emp-plan') };
+      if (!e) {
+        bodyReq.admin_email = mv('emp-admin-email').trim();
+        bodyReq.admin_nombre = mv('emp-admin-nombre').trim() || nombre + ' (Admin)';
+        bodyReq.admin_password = mv('emp-admin-pass');
+        if (!bodyReq.admin_email || !bodyReq.admin_password) { toast('Email y contraseña del admin son obligatorios', 'err'); return false; }
+      }
+      try {
+        if (e) {
+          await api('/empresas/'+e.id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(bodyReq) });
+          toast('Empresa actualizada', 'ok');
+        } else {
+          await api('/empresas', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(bodyReq) });
+          toast('Empresa creada con admin inicial', 'ok');
+        }
+        await cargarEmpresas(); render();
+      } catch (err) { toast(err.message, 'err'); }
+    }
+  });
+}
+
+async function cargarEmpresas() {
+  if (USER.rol !== 'super_admin') return;
+  try {
+    var r = await api('/empresas');
+    S.empresas = (r.data||[]).map(function(e){ e.id = Number(e.id); return e; });
+  } catch {}
 }
 
 // ============================================================================
