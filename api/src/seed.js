@@ -7,7 +7,7 @@ import { config } from './config.js';
 // Si ADMIN_PASSWORD viene en el entorno, lo usa; si no, genera uno aleatorio
 // y lo imprime en los logs UNA sola vez (para que el operador lo recupere).
 export async function ensureAdminSeed() {
-  const adminEmail = (process.env.ADMIN_EMAIL || 'cmadrid@cmdspa.com').toLowerCase();
+  const adminEmail = (process.env.ADMIN_EMAIL || 'admin@demo.cl').toLowerCase();
   const { rows } = await pool.query("SELECT * FROM usuarios WHERE lower(email) = lower($1)", [adminEmail]);
   const admin = rows[0];
 

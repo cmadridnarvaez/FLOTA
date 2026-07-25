@@ -17,8 +17,8 @@ export const config = {
   storageDir: process.env.STORAGE_DIR || '/data/storage',
   // Resend (email alertas)
   resendApiKey: process.env.RESEND_API_KEY || '',
-  alertaFrom: process.env.ALERTA_FROM || 'autos@cmdspa.com',
-  alertaTo: process.env.ALERTA_TO || 'pagos@cmdspa.cl',
+  alertaFrom: process.env.ALERTA_FROM || 'flota@tudominio.com',
+  alertaTo: process.env.ALERTA_TO || '',
   // OpenAI (análisis de documentos con GPT-4o Vision)
   openaiApiKey: process.env.OPENAI_API_KEY || '',
 };

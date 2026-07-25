@@ -18,7 +18,7 @@ export const pool = new Pool({
   port: Number(process.env.DB_PORT || 5432),
   database: process.env.DB_NAME || 'autos',
   user: process.env.DB_USER || 'autos',
-  password: process.env.DB_PASSWORD || 'autos',
+  password: process.env.DB_PASSWORD || '',
   // Pool conservador: es una app de pocos usuarios
   max: 8,
   idleTimeoutMillis: 30000,

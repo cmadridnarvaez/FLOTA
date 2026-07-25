@@ -234,7 +234,7 @@ Propiedad de **CMD Servicios Tecnológicos SpA**. Todos los derechos reservados.
 **FLOTA** es un producto de [CMD Servicios Tecnológicos SpA](https://www.cmdspa.com), empresa chilena de tecnología y servicios cloud.
 
 - 🌐 [www.cmdspa.com](https://www.cmdspa.com)
-- 📧 autos@cmdspa.com
+- 📧 contacto@tudominio.com
 
 ---
 
