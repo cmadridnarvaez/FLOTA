@@ -1895,37 +1895,84 @@ async function cargarChile() {
 // ============================================================================
 var S_CONFIG = null;
 
-async function vConfig() {
+function vConfig() {
   if (USER.rol !== 'admin' && USER.rol !== 'super_admin') return '<div class="vacio">Acceso restringido.</div>';
   if (!S_CONFIG) {
-    try { var r = await api('/config'); S_CONFIG = r.data; } catch { S_CONFIG = {}; }
-    if (S.tab === 'config') render();
+    cargarConfig();
     return '<div class="vacio"><span class="spinner"></span> Cargando configuración...</div>';
   }
-  var c = S_CONFIG;
+  return vConfigContent();
+}
+
+async function cargarConfig() {
+  try { var r = await api('/config'); S_CONFIG = r.data; } catch { S_CONFIG = {}; }
+  if (S.tab === 'config') render();
+}
+
+function vConfigContent() {
+  var c = S_CONFIG || {};
+  var providers = c.providers || {};
   var h = '<div class="sec-head"><h2 style="margin:0">Configuración</h2></div>';
 
-  // OpenAI
-  h += '<h2>IA — OpenAI</h2>';
+  // IA — Proveedor genérico
+  h += '<h2>IA — Análisis de documentos</h2>';
   h += '<form class="caja" onsubmit="return guardarConfig(event)">';
-  h += '<div class="campo campo-full"><label for="cfg-openai-key">API Key de OpenAI</label>';
-  h += '<input id="cfg-openai-key" type="password" placeholder="sk-..." value="">';
+  // Select de proveedor
+  var currentProvider = c.ai_provider || 'openai';
+  h += '<div class="campo campo-full"><label for="cfg-provider">Proveedor de IA</label>';
+  h += '<select id="cfg-provider" onchange="onProviderChange()">';
+  for (var pk in providers) {
+    var pv = providers[pk];
+    h += '<option value="' + pk + '"' + (currentProvider === pk ? ' selected' : '') + '>' + esc(pv.nombre) + '</option>';
+  }
+  h += '</select></div>';
+
+  // Base URL (solo visible si es custom)
+  h += '<div class="campo campo-full" id="cfg-baseurl-wrap" style="' + (currentProvider === 'custom' ? '' : 'display:none') + '">';
+  h += '<label for="cfg-baseurl">Base URL del endpoint</label>';
+  h += '<input id="cfg-baseurl" placeholder="https://api.tu-proveedor.com/v1" value="' + esc(c.ai_base_url || '') + '">';
+  h += '</div>';
+
+  // API Key
+  h += '<div class="campo campo-full"><label for="cfg-ai-key">API Key</label>';
+  h += '<input id="cfg-ai-key" type="password" placeholder="sk-..." value="">';
   if (c.openai_api_key_set) {
     h += '<div class="det" style="margin-top:4px">Configurada: <code style="color:var(--green)">' + esc(c.openai_api_key) + '</code> — deja vacío para mantener</div>';
   } else {
-    h += '<div class="det" style="margin-top:4px">No configurada. El análisis de documentos usará la key del servidor si existe.</div>';
+    h += '<div class="det" style="margin-top:4px">No configurada. Se usará la key del servidor si existe.</div>';
   }
   h += '</div>';
-  h += '<div class="campo"><label for="cfg-openai-model">Modelo</label>';
-  h += '<select id="cfg-openai-model">' +
-    '<option value="gpt-4o"' + (c.openai_model === 'gpt-4o' ? ' selected' : '') + '>GPT-4o (mejor calidad)</option>' +
-    '<option value="gpt-4o-mini"' + (c.openai_model === 'gpt-4o-mini' ? ' selected' : '') + '>GPT-4o mini (más barato)</option>' +
-    '<option value="gpt-4.1"' + (c.openai_model === 'gpt-4.1' ? ' selected' : '') + '>GPT-4.1</option>' +
-    '<option value="gpt-4.1-mini"' + (c.openai_model === 'gpt-4.1-mini' ? ' selected' : '') + '>GPT-4.1 mini</option>' +
-    '</select></div>';
 
-  // Resend
-  h += '<h2>Email — Resend</h2>';
+  // Modelo (texto libre con sugerencias)
+  h += '<div class="campo"><label for="cfg-ai-model">Modelo</label>';
+  var pvInfo = providers[currentProvider] || {};
+  var modelos = pvInfo.modelos || [];
+  var currentModel = c.ai_model || 'gpt-4o';
+  if (modelos.length > 0 && currentProvider !== 'custom') {
+    h += '<select id="cfg-ai-model">';
+    modelos.forEach(function(m) {
+      h += '<option value="' + esc(m) + '"' + (currentModel === m ? ' selected' : '') + '>' + esc(m) + '</option>';
+    });
+    if (modelos.indexOf(currentModel) < 0) {
+      h += '<option value="' + esc(currentModel) + '" selected>' + esc(currentModel) + ' (actual)</option>';
+    }
+    h += '</select>';
+  } else {
+    h += '<input id="cfg-ai-model" placeholder="nombre-del-modelo" value="' + esc(currentModel) + '">';
+  }
+  h += '</div>';
+
+  // Nota por proveedor
+  if (currentProvider === 'openrouter') {
+    h += '<div class="campo-full"><div class="det" style="color:var(--brand-text)">💡 OpenRouter da acceso a Claude, Gemini, Llama y 200+ modelos desde una sola API key.</div></div>';
+  } else if (currentProvider === 'groq') {
+    h += '<div class="campo-full"><div class="det" style="color:var(--brand-text)">⚡ Groq ofrece inferencia ultrarrápida y gratuita con modelos open-source.</div></div>';
+  } else if (currentProvider === 'ollama') {
+    h += '<div class="campo-full"><div class="det" style="color:var(--brand-text)">🏠 Ollama corre modelos localmente (gratis, sin API key). Requiere Ollama instalado en el servidor.</div></div>';
+  }
+
+  // Email — Resend
+  h += '<h2>Email — Alertas (Resend)</h2>';
   h += '<div class="campo campo-full"><label for="cfg-resend-key">API Key de Resend</label>';
   h += '<input id="cfg-resend-key" type="password" placeholder="re_..." value="">';
   if (c.resend_api_key_set) {
@@ -1942,24 +1989,41 @@ async function vConfig() {
   return h;
 }
 
+// Cambiar modelo/disposición cuando cambia el proveedor
+function onProviderChange() {
+  var provider = mv('cfg-provider');
+  var wrap = document.getElementById('cfg-baseurl-wrap');
+  if (wrap) wrap.style.display = (provider === 'custom') ? '' : 'none';
+  // Re-render para actualizar modelos disponibles
+  var c = S_CONFIG || {};
+  c.ai_provider = provider;
+  // Obtener modelos del proveedor
+  var pvInfo = (c.providers || {})[provider] || {};
+  if (pvInfo.modelos && pvInfo.modelos.length > 0) {
+    c.ai_model = pvInfo.modelos[0];
+  }
+  render();
+}
+
 async function guardarConfig(e) {
   e.preventDefault();
   var btn = $('cfg-btn'); btn.disabled = true; btn.textContent = 'Guardando...';
   var body = {
-    openai_model: mv('cfg-openai-model'),
+    ai_provider: mv('cfg-provider'),
+    ai_model: mv('cfg-ai-model'),
+    ai_base_url: mv('cfg-baseurl'),
     resend_from: mv('cfg-resend-from').trim(),
     resend_to: mv('cfg-resend-to').trim(),
   };
-  // Solo enviar keys si el usuario escribió algo (no sobreescribir con vacío)
-  var openaiKey = mv('cfg-openai-key').trim();
-  if (openaiKey) body.openai_api_key = openaiKey;
+  var aiKey = mv('cfg-ai-key').trim();
+  if (aiKey) body.openai_api_key = aiKey;
   var resendKey = mv('cfg-resend-key').trim();
   if (resendKey) body.resend_api_key = resendKey;
 
   try {
     await api('/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     toast('Configuración guardada', 'ok');
-    S_CONFIG = null; // forzar recarga
+    S_CONFIG = null;
     var r = await api('/config'); S_CONFIG = r.data;
     render();
   } catch (err) { toast(err.message, 'err'); }

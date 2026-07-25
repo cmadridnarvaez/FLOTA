@@ -160,7 +160,9 @@ CREATE TABLE alerta_envios (
 CREATE TABLE empresa_config (
     empresa_id     BIGINT PRIMARY KEY REFERENCES empresas(id) ON DELETE CASCADE,
     openai_api_key TEXT,
-    openai_model   TEXT DEFAULT 'gpt-4o',
+    ai_provider    TEXT DEFAULT 'openai',
+    ai_base_url    TEXT,
+    ai_model       TEXT DEFAULT 'gpt-4o',
     resend_api_key TEXT,
     resend_from    TEXT,
     resend_to      TEXT,

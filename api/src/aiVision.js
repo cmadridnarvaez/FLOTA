@@ -5,7 +5,7 @@
 // ============================================================================
 import fs from 'fs';
 import { config } from './config.js';
-import { getEmpresaConfig } from './routes/config.js';
+import { getEmpresaConfig, AI_PROVIDERS } from './routes/config.js';
 
 const TIPOS_VALIDOS = ['soap', 'permiso_circulacion', 'revision_tecnica', 'seguro', 'registro', 'otro'];
 
@@ -32,18 +32,29 @@ Reglas:
 - Si no puedes leer algún campo, pon null.`;
 
 export async function analizarDocumento(filePath, mimeType, empresaId) {
-  // Resolver API key: empresa_config → server .env → deshabilitado
-  let apiKey = config.openaiApiKey; // default del server
+  // Resolver config: empresa_config → server .env
+  let apiKey = config.openaiApiKey;
   let modelo = 'gpt-4o';
+  let baseUrl = 'https://api.openai.com/v1';
+  let extraHeaders = {};
+
   if (empresaId) {
     try {
       const ec = await getEmpresaConfig(empresaId);
       if (ec.openai_api_key) apiKey = ec.openai_api_key;
-      if (ec.openai_model) modelo = ec.openai_model;
+      if (ec.ai_model) modelo = ec.ai_model;
+      if (ec.ai_provider) {
+        const providerInfo = AI_PROVIDERS[ec.ai_provider];
+        if (ec.ai_provider === 'custom' && ec.ai_base_url) {
+          baseUrl = ec.ai_base_url;
+        } else if (providerInfo) {
+          baseUrl = providerInfo.baseUrl;
+        }
+      }
     } catch {}
   }
   if (!apiKey) {
-    throw new Error('Análisis IA no disponible. Configura tu API key de OpenAI en Configuración.');
+    throw new Error('Análisis IA no disponible. Configura tu API key en Configuración.');
   }
 
   // Leer archivo
@@ -93,11 +104,12 @@ export async function analizarDocumento(filePath, mimeType, empresaId) {
     temperature: 0.1,
   };
 
-  const r = await fetch('https://api.openai.com/v1/chat/completions', {
+  const r = await fetch(baseUrl.replace(/\/$/, '') + '/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: 'Bearer ' + apiKey,
       'Content-Type': 'application/json',
+      ...extraHeaders,
     },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(30000),
