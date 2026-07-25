@@ -4,6 +4,7 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { config } from '../config.js';
 
 export const configRouter = Router();
 configRouter.use(requireAuth);
@@ -22,7 +23,7 @@ export const AI_PROVIDERS = {
   custom:     { nombre: 'Personalizado',   baseUrl: '',                                modelos: [] },
 };
 
-// Helper: obtener config efectiva de una empresa
+// Helper: obtener config efectiva de una empresa (propia o fallback del server)
 export async function getEmpresaConfig(empresaId) {
   const { rows } = await pool.query('SELECT * FROM empresa_config WHERE empresa_id = $1', [empresaId]);
   const ec = rows[0];
@@ -39,23 +40,42 @@ export async function getEmpresaConfig(empresaId) {
   };
 }
 
-// GET /api/config
+// GET /api/config — muestra config de empresa + estado efectivo (lo que realmente se usa)
 configRouter.get('/', requireAdmin, async (req, res) => {
   const empresaId = req.user.empresa_id;
   const { rows } = await pool.query('SELECT * FROM empresa_config WHERE empresa_id = $1', [empresaId]);
   const ec = rows[0];
 
+  // Estado efectivo: ¿qué se está usando realmente?
+  const hasOwnOpenAI = !!ec?.openai_api_key;
+  const hasServerOpenAI = !!config.openaiApiKey;
+  const hasOwnResend = !!ec?.resend_api_key;
+  const hasServerResend = !!config.resendApiKey;
+
   res.json({
     data: {
+      // Keys enmascaradas (lo que la empresa configuró)
       openai_api_key: ec?.openai_api_key ? mask(ec.openai_api_key) : null,
-      openai_api_key_set: !!ec?.openai_api_key,
+      openai_api_key_set: hasOwnOpenAI,
       ai_provider: ec?.ai_provider || 'openai',
       ai_base_url: ec?.ai_base_url || '',
       ai_model: ec?.ai_model || 'gpt-4o',
       resend_api_key: ec?.resend_api_key ? mask(ec.resend_api_key) : null,
-      resend_api_key_set: !!ec?.resend_api_key,
+      resend_api_key_set: hasOwnResend,
       resend_from: ec?.resend_from || '',
       resend_to: ec?.resend_to || '',
+
+      // Estado efectivo (lo que realmente se usa al analizar/enviar)
+      effective: {
+        ai_source: hasOwnOpenAI ? 'empresa' : (hasServerOpenAI ? 'server' : 'none'),
+        ai_active: hasOwnOpenAI || hasServerOpenAI,
+        ai_key_masked: mask(hasOwnOpenAI ? ec.openai_api_key : (hasServerOpenAI ? config.openaiApiKey : null)),
+        resend_source: hasOwnResend ? 'empresa' : (hasServerResend ? 'server' : 'none'),
+        resend_active: hasOwnResend || hasServerResend,
+        resend_key_masked: mask(hasOwnResend ? ec.resend_api_key : (hasServerResend ? config.resendApiKey : null)),
+        resend_from: ec?.resend_from || config.alertaFrom || '',
+        resend_to: ec?.resend_to || config.alertaTo || '',
+      },
     },
     providers: AI_PROVIDERS,
   });

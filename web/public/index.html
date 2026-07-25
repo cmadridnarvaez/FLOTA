@@ -1936,10 +1936,14 @@ function vConfigContent() {
   // API Key
   h += '<div class="campo campo-full"><label for="cfg-ai-key">API Key</label>';
   h += '<input id="cfg-ai-key" type="password" placeholder="sk-..." value="">';
+  // Estado efectivo: mostrar qué se está usando realmente
+  var eff = c.effective || {};
   if (c.openai_api_key_set) {
-    h += '<div class="det" style="margin-top:4px">Configurada: <code style="color:var(--green)">' + esc(c.openai_api_key) + '</code> — deja vacío para mantener</div>';
+    h += '<div class="det" style="margin-top:4px">' + ico('✅') + 'Tu key: <code style="color:var(--green)">' + esc(c.openai_api_key) + '</code> — deja vacío para mantener</div>';
+  } else if (eff.ai_source === 'server') {
+    h += '<div class="det" style="margin-top:4px">' + ico('🟡') + 'Usando key del servidor: <code style="color:var(--amber)">' + esc(eff.ai_key_masked) + '</code> — pon la tuya para usar tu propia cuenta</div>';
   } else {
-    h += '<div class="det" style="margin-top:4px">No configurada. Se usará la key del servidor si existe.</div>';
+    h += '<div class="det" style="margin-top:4px">' + ico('❌') + 'Sin API key. El análisis de documentos no funcionará hasta que configures una.</div>';
   }
   h += '</div>';
 
@@ -1976,13 +1980,18 @@ function vConfigContent() {
   h += '<div class="campo campo-full"><label for="cfg-resend-key">API Key de Resend</label>';
   h += '<input id="cfg-resend-key" type="password" placeholder="re_..." value="">';
   if (c.resend_api_key_set) {
-    h += '<div class="det" style="margin-top:4px">Configurada: <code style="color:var(--green)">' + esc(c.resend_api_key) + '</code> — deja vacío para mantener</div>';
+    h += '<div class="det" style="margin-top:4px">' + ico('✅') + 'Tu key: <code style="color:var(--green)">' + esc(c.resend_api_key) + '</code> — deja vacío para mantener</div>';
+  } else if (eff.resend_source === 'server') {
+    h += '<div class="det" style="margin-top:4px">' + ico('🟡') + 'Usando key del servidor: <code style="color:var(--amber)">' + esc(eff.resend_key_masked) + '</code></div>';
   } else {
-    h += '<div class="det" style="margin-top:4px">No configurada. Las alertas usarán la configuración del servidor.</div>';
+    h += '<div class="det" style="margin-top:4px">' + ico('❌') + 'Sin API key. Las alertas de email no funcionarán.</div>';
   }
   h += '</div>';
-  h += '<div class="campo"><label for="cfg-resend-from">Email origen</label><input id="cfg-resend-from" placeholder="flota@tudominio.com" value="' + esc(c.resend_from || '') + '"></div>';
-  h += '<div class="campo"><label for="cfg-resend-to">Email destino (alertas)</label><input id="cfg-resend-to" placeholder="pagos@tudominio.com" value="' + esc(c.resend_to || '') + '"></div>';
+  // Pre-llenar from/to con los valores efectivos del server si no hay propios
+  var effFrom = c.resend_from || eff.resend_from || '';
+  var effTo = c.resend_to || eff.resend_to || '';
+  h += '<div class="campo"><label for="cfg-resend-from">Email origen</label><input id="cfg-resend-from" placeholder="flota@tudominio.com" value="' + esc(effFrom) + '"></div>';
+  h += '<div class="campo"><label for="cfg-resend-to">Email destino (alertas)</label><input id="cfg-resend-to" placeholder="pagos@tudominio.com" value="' + esc(effTo) + '"></div>';
 
   h += '<div class="fila-botones"><button class="btn" id="cfg-btn">Guardar configuración</button></div>';
   h += '</form>';
