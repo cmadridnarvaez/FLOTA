@@ -4,7 +4,7 @@
 
 Si descubres una vulnerabilidad de seguridad, por favor **NO abras un issue público**.
 
-Envía un email a: **seguridad@cmdspa.com**
+Envía un email a: soporte@cmdspa.com**
 
 Incluye:
 - Descripción del problema
