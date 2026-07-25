@@ -102,7 +102,7 @@ agentRouter.get('/', (req, res) => {
 
 // GET /api/agent/vehiculos
 agentRouter.get('/vehiculos', async (req, res) => {
-  const visibles = await vehiculosVisibles(req.user.id, req.user.rol);
+  const visibles = await vehiculosVisibles(req.user.id, req.user.rol, req.user.empresa_id);
   let q = 'SELECT * FROM vehiculos';
   const params = [];
   if (visibles !== null) {
@@ -159,7 +159,7 @@ agentRouter.get('/vehiculos/:id/ciclo-de-vida', async (req, res) => {
 
 // GET /api/agent/documentos?vehiculo_id=
 agentRouter.get('/documentos', async (req, res) => {
-  const visibles = await vehiculosVisibles(req.user.id, req.user.rol);
+  const visibles = await vehiculosVisibles(req.user.id, req.user.rol, req.user.empresa_id);
   const params = [];
   let where = '';
   if (visibles !== null) {
@@ -177,7 +177,7 @@ agentRouter.get('/documentos', async (req, res) => {
 
 // GET /api/agent/mantenciones?vehiculo_id=
 agentRouter.get('/mantenciones', async (req, res) => {
-  const visibles = await vehiculosVisibles(req.user.id, req.user.rol);
+  const visibles = await vehiculosVisibles(req.user.id, req.user.rol, req.user.empresa_id);
   const params = [];
   let where = '';
   if (visibles !== null) {
@@ -195,7 +195,7 @@ agentRouter.get('/mantenciones', async (req, res) => {
 
 // GET /api/agent/gastos?vehiculo_id=
 agentRouter.get('/gastos', async (req, res) => {
-  const visibles = await vehiculosVisibles(req.user.id, req.user.rol);
+  const visibles = await vehiculosVisibles(req.user.id, req.user.rol, req.user.empresa_id);
   const params = [];
   let where = '';
   if (visibles !== null) {
@@ -213,7 +213,7 @@ agentRouter.get('/gastos', async (req, res) => {
 
 // GET /api/agent/resumen
 agentRouter.get('/resumen', async (req, res) => {
-  const visibles = await vehiculosVisibles(req.user.id, req.user.rol);
+  const visibles = await vehiculosVisibles(req.user.id, req.user.rol, req.user.empresa_id);
   const params = [];
   let filtroVeh = '';
   if (visibles !== null) {

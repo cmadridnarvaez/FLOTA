@@ -15,7 +15,7 @@ export async function verifyPassword(plain, hash) {
 // -- Access token (corto) --------------------------------------------------
 export function signAccessToken(usuario) {
   return jwt.sign(
-    { sub: usuario.id, email: usuario.email, rol: usuario.rol, nombre: usuario.nombre },
+    { sub: usuario.id, email: usuario.email, rol: usuario.rol, nombre: usuario.nombre, empresa_id: usuario.empresa_id },
     config.jwtSecret,
     { expiresIn: config.jwtAccessTtl }
   );

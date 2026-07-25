@@ -10,7 +10,7 @@ vehiculosRouter.use(requireAuth);
 
 // GET /api/vehiculos
 vehiculosRouter.get('/', async (req, res) => {
-  const visibles = await vehiculosVisibles(req.user.id, req.user.rol);
+  const visibles = await vehiculosVisibles(req.user.id, req.user.rol, req.user.empresa_id);
   let q = 'SELECT * FROM vehiculos';
   const params = [];
   if (visibles !== null) {
@@ -37,9 +37,10 @@ vehiculosRouter.post('/', async (req, res) => {
   const b = req.body || {};
   if (!b.nombre) return res.status(400).json({ error: 'Nombre es obligatorio' });
   const { rows } = await pool.query(
-    `INSERT INTO vehiculos (nombre, patente, titular, tipo, marca, modelo, anio, vin, motor, color, notas, gps_tipo, gps_empresa, gps_device_id, gps_vence)
-     VALUES ($1, upper($2), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+    `INSERT INTO vehiculos (empresa_id, nombre, patente, titular, tipo, marca, modelo, anio, vin, motor, color, notas, gps_tipo, gps_empresa, gps_device_id, gps_vence)
+     VALUES ($1, $2, upper($3), $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
     [
+      req.user.empresa_id,
       b.nombre,
       b.patente ? String(b.patente).toUpperCase().trim() : null,
       b.titular || null,

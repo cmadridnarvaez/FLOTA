@@ -7,7 +7,7 @@ mantRouter.use(requireAuth);
 
 // GET /api/mantenciones?vehiculo_id=
 mantRouter.get('/', async (req, res) => {
-  const visibles = await vehiculosVisibles(req.user.id, req.user.rol);
+  const visibles = await vehiculosVisibles(req.user.id, req.user.rol, req.user.empresa_id);
   const params = [];
   let where = '';
   if (visibles !== null) {

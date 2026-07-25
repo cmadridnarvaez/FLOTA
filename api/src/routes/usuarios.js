@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { pool } from '../db.js';
-import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { requireAuth, requireAdmin, requireSuperAdmin } from '../middleware/auth.js';
 import { revokeAllUserTokens } from '../auth.js';
 
 function sha256(s) { return crypto.createHash('sha256').update(s).digest('hex'); }
@@ -11,13 +11,21 @@ export const usuariosRouter = Router();
 usuariosRouter.use(requireAuth);
 
 // --- Gestión de usuarios (solo admin) ---
-// GET /api/usuarios
+// GET /api/usuarios — admin ve usuarios de su empresa, super_admin ve todos
 usuariosRouter.get('/', requireAdmin, async (req, res) => {
-  const { rows } = await pool.query(
-    `SELECT u.id, u.email, u.nombre, u.rol, u.activo, u.creado_en,
-            (SELECT count(*) FROM acceso_vehiculo av WHERE av.usuario_id = u.id)::int AS vehiculos_count
-     FROM usuarios u ORDER BY u.nombre`
-  );
+  let q, params;
+  if (req.user.rol === 'super_admin') {
+    q = `SELECT u.id, u.email, u.nombre, u.rol, u.empresa_id, u.activo, u.creado_en, e.nombre as empresa_nombre,
+                (SELECT count(*) FROM acceso_vehiculo av WHERE av.usuario_id = u.id)::int AS vehiculos_count
+         FROM usuarios u LEFT JOIN empresas e ON e.id = u.empresa_id ORDER BY u.nombre`;
+    params = [];
+  } else {
+    q = `SELECT u.id, u.email, u.nombre, u.rol, u.activo, u.creado_en,
+                (SELECT count(*) FROM acceso_vehiculo av WHERE av.usuario_id = u.id)::int AS vehiculos_count
+         FROM usuarios u WHERE u.empresa_id = $1 ORDER BY u.nombre`;
+    params = [req.user.empresa_id];
+  }
+  const { rows } = await pool.query(q, params);
   res.json({ data: rows });
 });
 
@@ -27,11 +35,13 @@ usuariosRouter.post('/', requireAdmin, async (req, res) => {
   if (!b.email || !b.nombre || !b.password) return res.status(400).json({ error: 'email, nombre y password son obligatorios' });
   const exists = await pool.query('SELECT 1 FROM usuarios WHERE lower(email) = lower($1)', [b.email]);
   if (exists.rows[0]) return res.status(409).json({ error: 'Ya existe un usuario con ese email' });
+  // super_admin puede asignar empresa_id; admin usa su propia empresa
+  const empresaId = req.user.rol === 'super_admin' ? (b.empresa_id || req.user.empresa_id) : req.user.empresa_id;
   const hash = await bcrypt.hash(b.password, 10);
   const { rows } = await pool.query(
-    `INSERT INTO usuarios (email, nombre, password_hash, rol, activo)
-     VALUES (lower($1), $2, $3, $4, $5) RETURNING id, email, nombre, rol, activo`,
-    [b.email.trim(), b.nombre.trim(), hash, b.rol || 'usuario', b.activo !== false]
+    `INSERT INTO usuarios (email, nombre, password_hash, rol, empresa_id, activo)
+     VALUES (lower($1), $2, $3, $4, $5, $6) RETURNING id, email, nombre, rol, empresa_id, activo`,
+    [b.email.trim(), b.nombre.trim(), hash, b.rol || 'usuario', empresaId, b.activo !== false]
   );
   res.status(201).json({ data: rows[0] });
 });

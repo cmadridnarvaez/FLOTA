@@ -4,10 +4,23 @@
 -- ============================================================================
 
 -- Tipos enumerados
-CREATE TYPE usuario_rol AS ENUM ('admin', 'usuario');
+CREATE TYPE usuario_rol AS ENUM ('super_admin', 'admin', 'usuario');
 CREATE TYPE vehiculo_tipo AS ENUM ('calle', 'deportivo');
 CREATE TYPE documento_tipo AS ENUM ('soap', 'permiso_circulacion', 'revision_tecnica', 'seguro', 'registro', 'otro');
 CREATE TYPE gasto_categoria AS ENUM ('combustible', 'seguro', 'patente', 'mantencion', 'peaje', 'repuestos', 'accesorios', 'otro');
+
+-- ----------------------------------------------------------------------------
+-- Empresas (multi-tenant)
+-- ----------------------------------------------------------------------------
+CREATE TABLE empresas (
+    id          BIGSERIAL PRIMARY KEY,
+    nombre      TEXT NOT NULL,
+    rut         TEXT,
+    logo_path   TEXT,
+    plan        TEXT NOT NULL DEFAULT 'basico',
+    activa      BOOLEAN NOT NULL DEFAULT TRUE,
+    creada_en   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 -- ----------------------------------------------------------------------------
 -- Usuarios
@@ -18,6 +31,7 @@ CREATE TABLE usuarios (
     nombre        TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     rol           usuario_rol NOT NULL DEFAULT 'usuario',
+    empresa_id    BIGINT REFERENCES empresas(id),
     activo        BOOLEAN NOT NULL DEFAULT TRUE,
     creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -27,6 +41,7 @@ CREATE TABLE usuarios (
 -- ----------------------------------------------------------------------------
 CREATE TABLE vehiculos (
     id         BIGSERIAL PRIMARY KEY,
+    empresa_id BIGINT REFERENCES empresas(id),
     nombre     TEXT NOT NULL,
     patente    TEXT UNIQUE,                       -- puede ser NULL (en trámite)
     titular    TEXT,

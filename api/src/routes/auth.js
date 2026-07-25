@@ -39,7 +39,7 @@ authRouter.post('/login', rateLimitLogin, async (req, res) => {
   res.cookie(REFRESH_COOKIE, refresh, cookieOpts);
   res.json({
     token: access,
-    user: { id: u.id, email: u.email, nombre: u.nombre, rol: u.rol },
+    user: { id: u.id, email: u.email, nombre: u.nombre, rol: u.rol, empresa_id: u.empresa_id },
   });
 });
 
@@ -56,7 +56,7 @@ authRouter.post('/refresh', async (req, res) => {
   res.cookie(REFRESH_COOKIE, refresh, cookieOpts);
   res.json({
     token: access,
-    user: { id: u.id, email: u.email, nombre: u.nombre, rol: u.rol },
+    user: { id: u.id, email: u.email, nombre: u.nombre, rol: u.rol, empresa_id: u.empresa_id },
   });
 });
 

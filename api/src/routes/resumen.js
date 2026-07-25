@@ -7,7 +7,7 @@ resumenRouter.use(requireAuth);
 
 // GET /api/resumen — KPIs globales + próximos vencimientos (solo documentos vigentes)
 resumenRouter.get('/', async (req, res) => {
-  const visibles = await vehiculosVisibles(req.user.id, req.user.rol);
+  const visibles = await vehiculosVisibles(req.user.id, req.user.rol, req.user.empresa_id);
   const params = [];
   let filtroVeh = '';
   if (visibles !== null) {
