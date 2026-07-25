@@ -5,6 +5,7 @@
 // ============================================================================
 import fs from 'fs';
 import { config } from './config.js';
+import { getEmpresaConfig } from './routes/config.js';
 
 const TIPOS_VALIDOS = ['soap', 'permiso_circulacion', 'revision_tecnica', 'seguro', 'registro', 'otro'];
 
@@ -30,9 +31,19 @@ Reglas:
 - Si la imagen no es un documento vehicular, responde {"tipo": "otro", "confianza": "baja", "descripcion": "No parece un documento vehicular"}.
 - Si no puedes leer algún campo, pon null.`;
 
-export async function analizarDocumento(filePath, mimeType) {
-  if (!config.openaiApiKey) {
-    throw new Error('Análisis IA no disponible: OPENAI_API_KEY no configurada');
+export async function analizarDocumento(filePath, mimeType, empresaId) {
+  // Resolver API key: empresa_config → server .env → deshabilitado
+  let apiKey = config.openaiApiKey; // default del server
+  let modelo = 'gpt-4o';
+  if (empresaId) {
+    try {
+      const ec = await getEmpresaConfig(empresaId);
+      if (ec.openai_api_key) apiKey = ec.openai_api_key;
+      if (ec.openai_model) modelo = ec.openai_model;
+    } catch {}
+  }
+  if (!apiKey) {
+    throw new Error('Análisis IA no disponible. Configura tu API key de OpenAI en Configuración.');
   }
 
   // Leer archivo
@@ -67,7 +78,7 @@ export async function analizarDocumento(filePath, mimeType) {
   const dataUrl = `data:${mime};base64,${base64}`;
 
   const body = {
-    model: 'gpt-4o',
+    model: modelo,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       {
@@ -79,13 +90,13 @@ export async function analizarDocumento(filePath, mimeType) {
       },
     ],
     max_tokens: 500,
-    temperature: 0.1, // determinístico para extracción de datos
+    temperature: 0.1,
   };
 
   const r = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: 'Bearer ' + config.openaiApiKey,
+      Authorization: 'Bearer ' + apiKey,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),

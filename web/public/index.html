@@ -1375,11 +1375,12 @@ function render() {
   var tabs = TAB_DEFS.slice();
   if (USER.rol === 'admin' || USER.rol === 'super_admin') tabs.push(['usuarios','Usuarios']);
   if (USER.rol === 'super_admin') tabs.push(['empresas','Empresas']);
+  if (USER.rol === 'admin' || USER.rol === 'super_admin') tabs.push(['config','Config']);
   $('tabs').innerHTML = tabs.map(function(t){
     var sel = S.tab === t[0];
     return '<button role="tab" id="tab-'+t[0]+'" aria-selected="'+sel+'" aria-controls="panel-'+t[0]+'" tabindex="'+(sel?'0':'-1')+'" onclick="irA(\''+t[0]+'\')">'+t[1]+'</button>';
   }).join('');
-  var f = { resumen: vResumen, flota: vFlota, documentos: vDocs, mantenciones: vMant, gastos: vGastos, chile: vChile, usuarios: vUsuarios, ficha: vFichaVeh, empresas: vEmpresas };
+  var f = { resumen: vResumen, flota: vFlota, documentos: vDocs, mantenciones: vMant, gastos: vGastos, chile: vChile, usuarios: vUsuarios, ficha: vFichaVeh, empresas: vEmpresas, config: vConfig };
   $('view').innerHTML = '<section role="tabpanel" id="panel-'+S.tab+'" aria-labelledby="tab-'+S.tab+'">' + f[S.tab]() + '</section>';
   // Disparar count-up de KPIs cuando se muestra el resumen
   if (S.tab === 'resumen') {
@@ -1887,6 +1888,83 @@ async function cargarChile() {
   } catch (e) {
     // silencioso
   }
+}
+
+// ============================================================================
+// Vista: Configuración (admin) — API keys y modelo IA por empresa
+// ============================================================================
+var S_CONFIG = null;
+
+async function vConfig() {
+  if (USER.rol !== 'admin' && USER.rol !== 'super_admin') return '<div class="vacio">Acceso restringido.</div>';
+  if (!S_CONFIG) {
+    try { var r = await api('/config'); S_CONFIG = r.data; } catch { S_CONFIG = {}; }
+    if (S.tab === 'config') render();
+    return '<div class="vacio"><span class="spinner"></span> Cargando configuración...</div>';
+  }
+  var c = S_CONFIG;
+  var h = '<div class="sec-head"><h2 style="margin:0">Configuración</h2></div>';
+
+  // OpenAI
+  h += '<h2>IA — OpenAI</h2>';
+  h += '<form class="caja" onsubmit="return guardarConfig(event)">';
+  h += '<div class="campo campo-full"><label for="cfg-openai-key">API Key de OpenAI</label>';
+  h += '<input id="cfg-openai-key" type="password" placeholder="sk-..." value="">';
+  if (c.openai_api_key_set) {
+    h += '<div class="det" style="margin-top:4px">Configurada: <code style="color:var(--green)">' + esc(c.openai_api_key) + '</code> — deja vacío para mantener</div>';
+  } else {
+    h += '<div class="det" style="margin-top:4px">No configurada. El análisis de documentos usará la key del servidor si existe.</div>';
+  }
+  h += '</div>';
+  h += '<div class="campo"><label for="cfg-openai-model">Modelo</label>';
+  h += '<select id="cfg-openai-model">' +
+    '<option value="gpt-4o"' + (c.openai_model === 'gpt-4o' ? ' selected' : '') + '>GPT-4o (mejor calidad)</option>' +
+    '<option value="gpt-4o-mini"' + (c.openai_model === 'gpt-4o-mini' ? ' selected' : '') + '>GPT-4o mini (más barato)</option>' +
+    '<option value="gpt-4.1"' + (c.openai_model === 'gpt-4.1' ? ' selected' : '') + '>GPT-4.1</option>' +
+    '<option value="gpt-4.1-mini"' + (c.openai_model === 'gpt-4.1-mini' ? ' selected' : '') + '>GPT-4.1 mini</option>' +
+    '</select></div>';
+
+  // Resend
+  h += '<h2>Email — Resend</h2>';
+  h += '<div class="campo campo-full"><label for="cfg-resend-key">API Key de Resend</label>';
+  h += '<input id="cfg-resend-key" type="password" placeholder="re_..." value="">';
+  if (c.resend_api_key_set) {
+    h += '<div class="det" style="margin-top:4px">Configurada: <code style="color:var(--green)">' + esc(c.resend_api_key) + '</code> — deja vacío para mantener</div>';
+  } else {
+    h += '<div class="det" style="margin-top:4px">No configurada. Las alertas usarán la configuración del servidor.</div>';
+  }
+  h += '</div>';
+  h += '<div class="campo"><label for="cfg-resend-from">Email origen</label><input id="cfg-resend-from" placeholder="flota@tudominio.com" value="' + esc(c.resend_from || '') + '"></div>';
+  h += '<div class="campo"><label for="cfg-resend-to">Email destino (alertas)</label><input id="cfg-resend-to" placeholder="pagos@tudominio.com" value="' + esc(c.resend_to || '') + '"></div>';
+
+  h += '<div class="fila-botones"><button class="btn" id="cfg-btn">Guardar configuración</button></div>';
+  h += '</form>';
+  return h;
+}
+
+async function guardarConfig(e) {
+  e.preventDefault();
+  var btn = $('cfg-btn'); btn.disabled = true; btn.textContent = 'Guardando...';
+  var body = {
+    openai_model: mv('cfg-openai-model'),
+    resend_from: mv('cfg-resend-from').trim(),
+    resend_to: mv('cfg-resend-to').trim(),
+  };
+  // Solo enviar keys si el usuario escribió algo (no sobreescribir con vacío)
+  var openaiKey = mv('cfg-openai-key').trim();
+  if (openaiKey) body.openai_api_key = openaiKey;
+  var resendKey = mv('cfg-resend-key').trim();
+  if (resendKey) body.resend_api_key = resendKey;
+
+  try {
+    await api('/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    toast('Configuración guardada', 'ok');
+    S_CONFIG = null; // forzar recarga
+    var r = await api('/config'); S_CONFIG = r.data;
+    render();
+  } catch (err) { toast(err.message, 'err'); }
+  finally { btn.disabled = false; btn.textContent = 'Guardar configuración'; }
+  return false;
 }
 
 // ============================================================================

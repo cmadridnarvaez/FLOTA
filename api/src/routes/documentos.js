@@ -95,7 +95,7 @@ docsRouter.post('/analizar', upload.single('archivo'), async (req, res) => {
   }
 
   try {
-    const resultado = await analizarDocumento(req.file.path, req.file.mimetype);
+    const resultado = await analizarDocumento(req.file.path, req.file.mimetype, req.user.empresa_id);
     res.json({ data: resultado });
   } catch (e) {
     console.error('[documentos] analizar error:', e.message);
@@ -324,7 +324,7 @@ docsRouter.post('/:id/analizar-ia', async (req, res) => {
   const mime = mimeMap[ext] || 'application/octet-stream';
 
   try {
-    const resultado = await analizarDocumento(full, mime);
+    const resultado = await analizarDocumento(full, mime, req.user.empresa_id);
 
     // Actualizar el documento con los datos extraídos
     const updateBody = {};

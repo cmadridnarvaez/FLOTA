@@ -4,6 +4,7 @@
 // ============================================================================
 import { pool } from './db.js';
 import { config } from './config.js';
+import { getEmpresaConfig } from './routes/config.js';
 
 const TIPOS_DOC = {
   soap: 'SOAP',
@@ -153,23 +154,35 @@ function esc(s) {
 }
 
 // ----------------------------------------------------------------------------
-// Enviar email vía Resend API
+// Enviar email vía Resend API (con fallback a config de empresa)
 // ----------------------------------------------------------------------------
-async function enviarEmail(html, asunto) {
-  if (!config.resendApiKey) {
-    console.log('[notifier] RESEND_API_KEY no configurada — saltando envío');
+async function enviarEmail(html, asunto, empresaId) {
+  // Resolver keys: empresa_config → server .env
+  let apiKey = config.resendApiKey;
+  let from = config.alertaFrom;
+  let to = config.alertaTo;
+  if (empresaId) {
+    try {
+      const ec = await getEmpresaConfig(empresaId);
+      if (ec.resend_api_key) apiKey = ec.resend_api_key;
+      if (ec.resend_from) from = ec.resend_from;
+      if (ec.resend_to) to = ec.resend_to;
+    } catch {}
+  }
+  if (!apiKey || !from || !to) {
+    console.log('[notifier] Resend no configurado — saltando envío');
     return { skipped: true };
   }
 
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      Authorization: 'Bearer ' + config.resendApiKey,
+      Authorization: 'Bearer ' + apiKey,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: config.alertaFrom,
-      to: config.alertaTo,
+      from: from,
+      to: to,
       subject: asunto,
       html: html,
     }),

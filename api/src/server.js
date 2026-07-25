@@ -15,6 +15,7 @@ import { resumenRouter } from './routes/resumen.js';
 import { chileRouter } from './routes/chile.js';
 import { agentRouter } from './routes/agent.js';
 import { empresasRouter } from './routes/empresas.js';
+import { configRouter } from './routes/config.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -45,6 +46,7 @@ app.use('/api/resumen', resumenRouter);
 app.use('/api/chile', chileRouter);
 app.use('/api/agent', agentRouter);
 app.use('/api/empresas', empresasRouter);
+app.use('/api/config', configRouter);
 
 // 404 API
 app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint no encontrado' }));

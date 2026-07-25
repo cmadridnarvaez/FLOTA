@@ -153,6 +153,19 @@ CREATE TABLE alerta_envios (
     enviado_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (documento_id, tipo_aviso)                -- no reenviar el mismo tipo
 );
+
+-- ----------------------------------------------------------------------------
+-- Configuración por empresa — API keys propias (OpenAI, Resend)
+-- ----------------------------------------------------------------------------
+CREATE TABLE empresa_config (
+    empresa_id     BIGINT PRIMARY KEY REFERENCES empresas(id) ON DELETE CASCADE,
+    openai_api_key TEXT,
+    openai_model   TEXT DEFAULT 'gpt-4o',
+    resend_api_key TEXT,
+    resend_from    TEXT,
+    resend_to      TEXT,
+    actualizado_en TIMESTAMPTZ DEFAULT now()
+);
 CREATE INDEX idx_vehiculos_patente        ON vehiculos (patente);
 CREATE INDEX idx_documentos_vehiculo_vence ON documentos (vehiculo_id, vence);
 CREATE INDEX idx_mantenciones_vehiculo     ON mantenciones (vehiculo_id, fecha DESC);
