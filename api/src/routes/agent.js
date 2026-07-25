@@ -17,23 +17,25 @@ agentRouter.use(apiKeyAuth);
 agentRouter.use(rateLimitAgent);
 
 // Helper: limpia timestamps a formato Chile legible
+const _TIMESTAMP_FIELDS = new Set(['creado_en', 'actualizado_en', 'ultimo_uso', 'enviado_en', 'expires_at']);
 function limpiarFechas(obj) {
   if (obj === null || obj === undefined) return obj;
   if (obj instanceof Date) {
-    const cl = new Date(obj.getTime() - 4 * 3600000); // UTC-4 Chile
+    const cl = new Date(obj.getTime() - 4 * 3600000);
     const p = (n) => String(n).padStart(2, '0');
     return cl.getFullYear() + '-' + p(cl.getMonth()+1) + '-' + p(cl.getDate()) + ' ' + p(cl.getHours()) + ':' + p(cl.getMinutes());
-  }
-  if (typeof obj === 'string') {
-    // TIMESTAMPTZ con offset: "2026-07-20 11:47:15.877-04" → "2026-07-20 11:47"
-    const m = obj.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})/);
-    if (m) return m[1] + ' ' + m[2];
-    return obj;
   }
   if (Array.isArray(obj)) return obj.map(limpiarFechas);
   if (typeof obj === 'object') {
     const out = {};
-    for (const k of Object.keys(obj)) out[k] = limpiarFechas(obj[k]);
+    for (const k of Object.keys(obj)) {
+      if (_TIMESTAMP_FIELDS.has(k) && typeof obj[k] === 'string') {
+        const m = obj[k].match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})/);
+        out[k] = m ? m[1] + ' ' + m[2] : obj[k];
+      } else {
+        out[k] = limpiarFechas(obj[k]);
+      }
+    }
     return out;
   }
   return obj;

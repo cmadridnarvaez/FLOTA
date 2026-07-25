@@ -15,13 +15,15 @@ const MAGIC = {
   pdf:  Buffer.from('%PDF', 'latin1'),
   png:  Buffer.from([0x89, 0x50, 0x4e, 0x47]),
   jpg:  Buffer.from([0xff, 0xd8, 0xff]),
-  gif:  Buffer.from('GIF87a', 'latin1'),
-  webp: Buffer.from('RIFF', 'latin1'),
+  gif:  Buffer.from('GIF89a', 'latin1'),  // 89a es la variante más común
+  webp: Buffer.from('WEBP', 'latin1'),  // offset 8, verificado abajo
 };
 function detectarTipo(buf) {
-  for (const [t, sig] of Object.entries(MAGIC)) {
-    if (buf.subarray(0, sig.length).equals(sig)) return t;
-  }
+  if (buf.subarray(0, 4).toString('latin1') === '%PDF') return 'pdf';
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'png';
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpg';
+  if (buf.toString('latin1', 0, 6).match(/^GIF8[79]a$/)) return 'gif';
+  if (buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP') return 'webp';
   return null;
 }
 
@@ -61,9 +63,21 @@ function moverADestino(tmpPath, vehiculoId) {
   return path.join(String(vehiculoId), path.basename(tmpPath));
 }
 
+// Rate limit para GPT-4o Vision: 5 análisis cada 5 minutos por usuario
+let _analizarTimestamps = [];
+const _analizarCooldown = 5 * 60 * 1000; // 5 min
+const _analizarMax = 5;
+
 // POST /api/documentos/analizar — analizar documento con GPT-4o Vision
 // Recibe multipart con archivo temporal, lo procesa con IA, NO lo guarda
 docsRouter.post('/analizar', upload.single('archivo'), async (req, res) => {
+  const ahora = Date.now();
+  _analizarTimestamps = _analizarTimestamps.filter(function(t) { return ahora - t < _analizarCooldown; });
+  if (_analizarTimestamps.length >= _analizarMax) {
+    if (req.file) fs.promises.unlink(req.file.path).catch(function() {});
+    return res.status(429).json({ error: 'Límite de análisis IA alcanzado. Reintenta en unos minutos.' });
+  }
+  _analizarTimestamps.push(ahora);
   if (!req.file) {
     return res.status(400).json({ error: 'Debes subir un archivo para analizar' });
   }
@@ -92,7 +106,8 @@ docsRouter.post('/analizar', upload.single('archivo'), async (req, res) => {
   }
 });
 
-// GET /api/documentos?vehiculo_id=
+// GET /api/documentos?vehiculo_id=&incluir_historial=1
+// Por defecto solo vigentes. incluir_historial=1 trae todo.
 docsRouter.get('/', async (req, res) => {
   const visibles = await vehiculosVisibles(req.user.id, req.user.rol);
   const params = [];
@@ -106,9 +121,29 @@ docsRouter.get('/', async (req, res) => {
     where += ' AND vehiculo_id = $' + (params.length + 1);
     params.push(Number(req.query.vehiculo_id));
   }
+  // Por defecto solo vigentes (es_vigente = TRUE)
+  if (req.query.incluir_historial !== '1' && req.query.incluir_historial !== 'true') {
+    where += ' AND es_vigente = TRUE';
+  }
   const { rows } = await pool.query(
     `SELECT * FROM documentos WHERE 1=1 ${where} ORDER BY vence ASC NULLS LAST`,
     params
+  );
+  res.json({ data: rows });
+});
+
+// GET /api/documentos/:id/versiones — historial de versiones del grupo
+docsRouter.get('/:id/versiones', async (req, res) => {
+  const id = Number(req.params.id);
+  const { rows: doc } = await pool.query('SELECT grupo_id, vehiculo_id FROM documentos WHERE id = $1', [id]);
+  if (!doc[0]) return res.status(404).json({ error: 'No encontrado' });
+  if (!(await puedeAccederVehiculo(req, doc[0].vehiculo_id))) return res.status(403).json({ error: 'Sin acceso' });
+
+  const { rows } = await pool.query(
+    `SELECT id, tipo, descripcion, vence, archivo_path, es_vigente, creado_en
+     FROM documentos WHERE grupo_id = $1
+     ORDER BY es_vigente DESC, creado_en DESC`,
+    [doc[0].grupo_id]
   );
   res.json({ data: rows });
 });
@@ -131,7 +166,6 @@ docsRouter.post('/', upload.single('archivo'), async (req, res) => {
 
   let archivoPath = null;
   if (req.file) {
-    // H2: validar magic number real del archivo
     const head = fs.readFileSync(req.file.path, { encoding: null }).subarray(0, 16);
     const tipoReal = detectarTipo(head);
     if (!tipoReal) {
@@ -141,15 +175,55 @@ docsRouter.post('/', upload.single('archivo'), async (req, res) => {
     archivoPath = moverADestino(req.file.path, vid);
   }
 
-  const { rows } = await pool.query(
-    `INSERT INTO documentos (vehiculo_id, tipo, descripcion, vence, archivo_path)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [vid, req.body.tipo, req.body.descripcion || null, req.body.vence || null, archivoPath]
-  );
+  // H1: Versionado en TRANSACCIÓN para prevenir race condition (dos vigentes del mismo tipo)
+  const client = await pool.connect();
+  let rows;
+  try {
+    await client.query('BEGIN');
+
+    // Lock + buscar vigente previo del mismo tipo + vehículo
+    const { rows: previos } = await client.query(
+      'SELECT id, grupo_id FROM documentos WHERE vehiculo_id = $1 AND tipo = $2 AND es_vigente = TRUE FOR UPDATE LIMIT 1',
+      [vid, req.body.tipo]
+    );
+    const previo = previos[0];
+    let grupoId;
+
+    if (previo) {
+      await client.query('UPDATE documentos SET es_vigente = FALSE WHERE id = $1', [previo.id]);
+      grupoId = previo.grupo_id;
+    }
+
+    const insResult = await client.query(
+      `INSERT INTO documentos (vehiculo_id, tipo, descripcion, vence, archivo_path, grupo_id, es_vigente)
+       VALUES ($1, $2, $3, $4, $5, $6, TRUE) RETURNING *`,
+      [vid, req.body.tipo, req.body.descripcion || null, req.body.vence || null, archivoPath, grupoId || null]
+    );
+    rows = insResult.rows;
+
+    if (!grupoId) {
+      await client.query('UPDATE documentos SET grupo_id = id WHERE id = $1', [rows[0].id]);
+      rows[0].grupo_id = rows[0].id;
+    }
+
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    // El UNIQUE parcial protege contra race: si otro proceso ya insertó, el INSERT falla aquí
+    if (e.code === '23505') {
+      return res.status(409).json({ error: 'Ya existe un documento vigente de este tipo. Intenta nuevamente.' });
+    }
+    throw e;
+  } finally {
+    client.release();
+  }
+
   res.status(201).json({ data: rows[0] });
 });
 
 // PUT /api/documentos/:id  (multipart opcional)
+// Si se reemplaza el archivo: crea NUEVA VERSIÓN (no borra la anterior)
+// Si solo cambia metadata: UPDATE in-place del documento vigente
 docsRouter.put('/:id', upload.single('archivo'), async (req, res) => {
   const id = Number(req.params.id);
   const { rows: exist } = await pool.query('SELECT * FROM documentos WHERE id = $1', [id]);
@@ -162,7 +236,7 @@ docsRouter.put('/:id', upload.single('archivo'), async (req, res) => {
     return res.status(403).json({ error: 'Sin acceso a este vehículo' });
   }
 
-  let archivoPath = exist[0].archivo_path;
+  // Si hay archivo nuevo → crear nueva versión (no borrar anterior)
   if (req.file) {
     const head = fs.readFileSync(req.file.path, { encoding: null }).subarray(0, 16);
     const tipoReal = detectarTipo(head);
@@ -170,21 +244,32 @@ docsRouter.put('/:id', upload.single('archivo'), async (req, res) => {
       fs.promises.unlink(req.file.path).catch(() => {});
       return res.status(400).json({ error: 'Archivo corrupto o tipo no permitido' });
     }
-    archivoPath = moverADestino(req.file.path, exist[0].vehiculo_id);
-    // Borrar archivo físico anterior (L4)
-    if (exist[0].archivo_path && exist[0].archivo_path !== archivoPath) {
-      fs.promises.unlink(path.join(config.storageDir, exist[0].archivo_path)).catch(() => {});
-    }
+    const archivoPath = moverADestino(req.file.path, exist[0].vehiculo_id);
+
+    // Archivar el documento actual
+    await pool.query('UPDATE documentos SET es_vigente = FALSE WHERE id = $1', [id]);
+
+    // Crear nueva versión con los datos actualizados
+    const tipo = req.body.tipo || exist[0].tipo;
+    const descripcion = req.body.descripcion !== undefined ? (req.body.descripcion || null) : exist[0].descripcion;
+    const vence = req.body.vence !== undefined ? (req.body.vence || null) : exist[0].vence;
+
+    const { rows } = await pool.query(
+      `INSERT INTO documentos (vehiculo_id, tipo, descripcion, vence, archivo_path, grupo_id, es_vigente)
+       VALUES ($1, $2, $3, $4, $5, $6, TRUE) RETURNING *`,
+      [exist[0].vehiculo_id, tipo, descripcion, vence, archivoPath, exist[0].grupo_id]
+    );
+    return res.json({ data: rows[0] });
   }
 
+  // Sin archivo nuevo: solo actualizar metadata del documento vigente
   const { rows } = await pool.query(
     `UPDATE documentos SET
        tipo = COALESCE($1, tipo),
        descripcion = COALESCE($2, descripcion),
-       vence = COALESCE($3, vence),
-       archivo_path = $4
-     WHERE id = $5 RETURNING *`,
-    [req.body.tipo, req.body.descripcion, req.body.vence || null, archivoPath, id]
+       vence = COALESCE($3, vence)
+     WHERE id = $4 RETURNING *`,
+    [req.body.tipo, req.body.descripcion, req.body.vence || null, id]
   );
   res.json({ data: rows[0] });
 });

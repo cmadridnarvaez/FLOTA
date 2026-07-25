@@ -1093,7 +1093,7 @@
     </div>
     <nav id="tabs" class="header-nav" role="tablist" aria-label="Secciones"></nav>
   </header>
-  <main id="view" role="main" aria-live="polite"></main>
+  <main id="view" role="main"></main>
   <footer class="app-footer">
     <a href="https://www.cmdspa.com" target="_blank" rel="noopener" class="footer-brand" aria-label="CMD Servicios Tecnológicos SpA">
       <img src="/cmd-logo.png" alt="" width="80" height="26" aria-hidden="true" class="footer-logo">
@@ -1202,7 +1202,7 @@ function ico(emoji) { return '<span aria-hidden="true">' + emoji + '</span> '; }
 // Utilidades
 // ============================================================================
 function $(id) { return document.getElementById(id); }
-function esc(t) { return t == null ? '' : String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(t) { return t == null ? '' : String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 // Formatea fecha a DD/MM/YYYY (zona horaria America/Santiago, sin el feo ISO)
 function fmtF(f) {
   if (!f) return '—';
@@ -1217,15 +1217,16 @@ function fmtF(f) {
 function fmtFH(f) {
   if (!f) return '—';
   var d = new Date(f);
-  if (isNaN(d)) return f;
-  // Convertir a zona America/Santiago (-4 en invierno, -3 en verano pero simplificamos a -4 CLT)
-  var cl = new Date(d.getTime() - (4 * 3600000));
-  var dd = String(cl.getDate()).padStart(2, '0');
-  var mm = String(cl.getMonth() + 1).padStart(2, '0');
-  var yy = cl.getFullYear();
-  var hh = String(cl.getHours()).padStart(2, '0');
-  var mi = String(cl.getMinutes()).padStart(2, '0');
-  return dd + '/' + mm + '/' + yy + ' ' + hh + ':' + mi;
+  if (isNaN(d)) return String(f);
+  // Usar Intl para zona horaria America/Santiago correcta (maneja DST)
+  try {
+    return new Intl.DateTimeFormat('es-CL', {
+      timeZone: 'America/Santiago', day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    }).format(d);
+  } catch(e) {
+    return String(f);
+  }
 }
 function fmtM(n) { return n == null ? '—' : '$' + Number(n).toLocaleString('es-CL'); }
 function dias(f) {
@@ -1324,6 +1325,8 @@ async function salir() {
 }
 function cerrarSesion() {
   TOKEN = null; USER = null;
+  S.veh = []; S.docs = []; S.mant = []; S.gas = []; S.users = []; S.resumen = null; S.verVeh = null;
+  chileCache = { indicadores: null, sismos: null, feriados: null };
   $('login').style.display = 'block';
   $('app').style.display = 'none';
 }
@@ -1616,14 +1619,18 @@ function vFichaVeh() {
       '</div></div>' + gpsEstado + '</div>';
   }
 
-  // Documentos vigentes
-  if (docsConVenc.length) {
-    h += '<h2>Estado de documentos</h2>';
-    docsConVenc.forEach(function(d){
+  // Documentos del vehículo (todos los vigentes)
+  if (docs.length) {
+    h += '<h2>Documentos ('+docs.length+')</h2>';
+    docs.forEach(function(d){
       var e = estadoDoc(d.vence);
-      h += '<div class="item '+e.cls+'"><div><div class="tit">'+(TIPOS[d.tipo]||d.tipo)+'</div>';
-      h += '<div class="det">'+esc(d.descripcion||'')+' · vence '+fmtF(d.vence)+'</div></div>';
-      h += '<span class="badge '+e.cls+'">'+e.txt+'</span></div>';
+      var badgeEstado = d.vence ? '<span class="badge '+e.cls+'">'+e.txt+'</span>' : '';
+      h += '<div class="item '+(d.vence?e.cls:'')+'"><div style="flex:1">' +
+        '<div class="tit">'+(TIPOS[d.tipo]||d.tipo)+'</div>' +
+        '<div class="det">'+esc(d.descripcion||'')+(d.vence?' · vence '+fmtF(d.vence):'')+'</div>' +
+        '</div>' +
+        (d.archivo_path ? '<button class="btn sec sm" onclick="verDoc('+d.id+')">'+ico('📄')+'Ver</button>' : '') +
+        badgeEstado + '</div>';
     });
   }
 
@@ -1665,9 +1672,11 @@ function vDocs() {
     h += '<h3 style="color:var(--brand-text)">'+esc(v.nombre)+(v.patente?' · '+esc(v.patente):'')+'</h3>';
     docs.forEach(function(d){
       var e = estadoDoc(d.vence);
-      h += '<div class="item '+(d.vence?e.cls:'')+'"><div><div class="tit">'+(TIPOS[d.tipo]||d.tipo)+'</div>'+
+      var badgeVigente = '<span class="badge verde" style="margin-right:4px">Vigente</span>';
+      h += '<div class="item '+(d.vence?e.cls:'')+'"><div><div class="tit">'+badgeVigente+(TIPOS[d.tipo]||d.tipo)+'</div>'+
         '<div class="det">'+esc(d.descripcion||'')+(d.vence?' · vence '+fmtF(d.vence):'')+'</div></div>'+
         (d.archivo_path?'<button class="link" onclick="verDoc('+d.id+')">'+ico('📄')+'Ver</button>':'')+
+        '<button class="btn sec sm" onclick="verHistorialDoc('+d.id+')" aria-label="Ver historial">'+ico('📅')+'</button>'+
         '<button class="btn sec sm" onclick="modalDoc('+d.id+')" aria-label="Editar documento">'+ico('✏️')+'</button>'+
         btnEliminar('borrarDoc('+d.id+')','Eliminar documento '+(TIPOS[d.tipo]||d.tipo))+
         '<span class="badge '+e.cls+'">'+e.txt+'</span></div>';
@@ -1675,6 +1684,38 @@ function vDocs() {
   });
   if (!hayAlguno) h += '<div class="vacio">Sin documentos registrados todavía. Sube el SOAP o el permiso para empezar.</div>';
   return h + '</div>';
+}
+
+// Modal: historial de versiones de un documento
+async function verHistorialDoc(id) {
+  var d = S.docs.find(function(x){ return Number(x.id) === Number(id); });
+  if (!d) return;
+  var versiones = [];
+  try { var r = await api('/documentos/'+id+'/versiones'); versiones = r.data || []; } catch {}
+
+  var body;
+  if (versiones.length <= 1) {
+    body = '<div class="vacio">Este documento no tiene versiones anteriores. Es la única versión.</div>';
+  } else {
+    body = '<p style="font-size:var(--fs-sm);color:var(--text-3);margin-bottom:10px">'+versiones.length+' versiones de '+(TIPOS[d.tipo]||d.tipo)+'</p>';
+    body += versiones.map(function(v) {
+      var badge = v.es_vigente ? '<span class="badge verde">Vigente</span>' : '<span class="badge gris">Archivada</span>';
+      var fechaSubida = fmtFH(v.creado_en);
+      var verBtn = v.archivo_path ? '<button class="btn sec sm" onclick="verDoc('+v.id+')">'+ico('📄')+'Ver archivo</button>' : '';
+      return '<div class="item '+(v.es_vigente?'':'gris')+'" style="margin-bottom:6px">'+
+        '<div><div class="det">'+(TIPOS[v.tipo]||v.tipo)+'</div>'+
+        '<div class="det">'+esc(v.descripcion||'')+(v.vence?' · vence '+fmtF(v.vence):'')+'</div>'+
+        '<div class="det" style="color:var(--text-faint)">Subido: '+fechaSubida+'</div></div>'+
+        badge + verBtn + '</div>';
+    }).join('');
+  }
+
+  abrirModal({
+    titulo: '📅 Historial de ' + (TIPOS[d.tipo] || 'documento'),
+    bodyHtml: body,
+    textoSave: 'Cerrar',
+    onSave: async function() { cerrarModal(); }
+  });
 }
 
 function verDoc(id) {
@@ -2529,6 +2570,14 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('resize', function() {
     clearTimeout(rt);
     rt = setTimeout(function() { redimensionar(); initNodos(); }, 200);
+  });
+  // Pausar canvas cuando la pestaña está oculta (ahorro de batería/CPU en móvil)
+  var neuralRAF = null;
+  var origDibujar = dibujar;
+  dibujar = function() { neuralRAF = requestAnimationFrame(dibujar); };
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden && neuralRAF) { cancelAnimationFrame(neuralRAF); neuralRAF = null; }
+    else if (!document.hidden && !neuralRAF) { neuralRAF = requestAnimationFrame(dibujar); }
   });
   // Actualizar color cuando cambia el tema
   document.addEventListener('themeChanged', function() { neuralRGB = getNeuralRGB(); });

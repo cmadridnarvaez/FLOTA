@@ -67,7 +67,10 @@ CREATE TABLE documentos (
     descripcion  TEXT,
     vence        DATE,
     archivo_path TEXT,                            -- ruta relativa en el volumen de storage
-    creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
+    creado_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- Versionado: agrupa versiones del mismo tipo + vehículo
+    grupo_id     BIGINT,                          -- ID del documento original (raíz del grupo)
+    es_vigente   BOOLEAN NOT NULL DEFAULT TRUE    -- TRUE = versión más reciente del grupo
 );
 
 -- ----------------------------------------------------------------------------

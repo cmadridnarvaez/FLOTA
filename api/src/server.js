@@ -22,7 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Trust proxy: detrás de Cloudflare Tunnel / nginx
-app.set('trust proxy', 1);
+app.set('trust proxy', 'loopback, linklocal, uniquelocal');
 
 // CORS cerrado: mismo origen (web y api viven en el mismo host por nginx)
 app.use((req, res, next) => {

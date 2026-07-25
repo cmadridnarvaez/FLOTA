@@ -5,7 +5,7 @@ import { requireAuth, vehiculosVisibles } from '../middleware/auth.js';
 export const resumenRouter = Router();
 resumenRouter.use(requireAuth);
 
-// GET /api/resumen — KPIs globales + próximos vencimientos
+// GET /api/resumen — KPIs globales + próximos vencimientos (solo documentos vigentes)
 resumenRouter.get('/', async (req, res) => {
   const visibles = await vehiculosVisibles(req.user.id, req.user.rol);
   const params = [];
@@ -18,9 +18,10 @@ resumenRouter.get('/', async (req, res) => {
     params.push(visibles);
   }
 
+  // C2: todas las queries filtran es_vigente = TRUE para no contar versiones archivadas
   const qDocs = (extraWhere, p) =>
     pool.query(
-      `SELECT count(*)::int FROM documentos WHERE vence IS NOT NULL ${filtroVeh} ${extraWhere}`,
+      `SELECT count(*)::int FROM documentos WHERE vence IS NOT NULL AND es_vigente = TRUE ${filtroVeh} ${extraWhere}`,
       p
     );
 
@@ -34,12 +35,12 @@ resumenRouter.get('/', async (req, res) => {
     qDocs('AND vence > CURRENT_DATE + 60', params),
   ]);
 
-  // Próximos vencimientos (los 30 más cercanos)
+  // Próximos vencimientos (los 30 más cercanos, solo vigentes)
   const p2 = [...params];
   const prox = await pool.query(
     `SELECT d.id, d.tipo, d.descripcion, d.vence, d.vehiculo_id, v.nombre, v.patente
      FROM documentos d JOIN vehiculos v ON v.id = d.vehiculo_id
-     WHERE d.vence IS NOT NULL ${filtroVeh}
+     WHERE d.vence IS NOT NULL AND d.es_vigente = TRUE ${filtroVeh}
      ORDER BY d.vence ASC LIMIT 30`,
     p2
   );

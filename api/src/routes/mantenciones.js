@@ -45,6 +45,10 @@ mantRouter.put('/:id', async (req, res) => {
   const { rows: ex } = await pool.query('SELECT vehiculo_id FROM mantenciones WHERE id = $1', [id]);
   if (!ex[0]) return res.status(404).json({ error: 'No encontrado' });
   if (!(await puedeAccederVehiculo(req, ex[0].vehiculo_id))) return res.status(403).json({ error: 'Sin acceso' });
+  // H2: si cambia vehiculo_id, validar acceso al nuevo vehículo
+  if (b.vehiculo_id && Number(b.vehiculo_id) !== Number(ex[0].vehiculo_id)) {
+    if (!(await puedeAccederVehiculo(req, Number(b.vehiculo_id)))) return res.status(403).json({ error: 'Sin acceso al vehículo destino' });
+  }
   const { rows } = await pool.query(
     `UPDATE mantenciones SET
        vehiculo_id  = COALESCE($1, vehiculo_id),
