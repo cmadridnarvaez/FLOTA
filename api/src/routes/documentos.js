@@ -300,3 +300,54 @@ docsRouter.get('/:id/archivo', async (req, res) => {
   res.setHeader('Content-Disposition', 'attachment');
   res.sendFile(path.resolve(full));
 });
+
+// POST /api/documentos/:id/analizar-ia — analiza el archivo existente en disco con GPT-4o
+// (sin necesidad de re-subir el archivo) y actualiza el documento con los datos extraídos
+docsRouter.post('/:id/analizar-ia', async (req, res) => {
+  const id = Number(req.params.id);
+  const { rows } = await pool.query('SELECT * FROM documentos WHERE id = $1', [id]);
+  const d = rows[0];
+  if (!d) return res.status(404).json({ error: 'No encontrado' });
+  if (!(await puedeAccederVehiculo(req, d.vehiculo_id))) return res.status(403).json({ error: 'Sin acceso' });
+  if (!d.archivo_path) return res.status(400).json({ error: 'Este documento no tiene archivo para analizar' });
+
+  const full = path.join(config.storageDir, d.archivo_path);
+  if (!fs.existsSync(full)) return res.status(404).json({ error: 'Archivo no encontrado en disco' });
+
+  if (!config.openaiApiKey) {
+    return res.status(503).json({ error: 'Análisis IA no disponible. Contacta al administrador.' });
+  }
+
+  // Determinar MIME desde la extensión
+  const ext = path.extname(d.archivo_path).toLowerCase();
+  const mimeMap = { '.pdf': 'application/pdf', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' };
+  const mime = mimeMap[ext] || 'application/octet-stream';
+
+  try {
+    const resultado = await analizarDocumento(full, mime);
+
+    // Actualizar el documento con los datos extraídos
+    const updateBody = {};
+    if (resultado.descripcion) updateBody.descripcion = resultado.descripcion;
+    if (resultado.vence) updateBody.vence = resultado.vence;
+    if (resultado.tipo && resultado.tipo !== 'otro') updateBody.tipo = resultado.tipo;
+
+    if (Object.keys(updateBody).length > 0) {
+      const sets = [];
+      const params = [];
+      let i = 1;
+      for (const [k, v] of Object.entries(updateBody)) {
+        sets.push(`${k} = $${i}`);
+        params.push(v);
+        i++;
+      }
+      params.push(id);
+      await pool.query(`UPDATE documentos SET ${sets.join(', ')} WHERE id = $${i}`, params);
+    }
+
+    res.json({ data: resultado, actualizado: Object.keys(updateBody).length > 0 });
+  } catch (e) {
+    console.error('[documentos] analizar-ia error:', e.message);
+    res.status(502).json({ error: e.message || 'No se pudo analizar el documento' });
+  }
+});

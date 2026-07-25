@@ -35,12 +35,35 @@ export async function analizarDocumento(filePath, mimeType) {
     throw new Error('Análisis IA no disponible: OPENAI_API_KEY no configurada');
   }
 
-  // Leer archivo y convertir a base64
-  const buffer = fs.readFileSync(filePath);
-  const base64 = buffer.toString('base64');
+  // Leer archivo
+  let buffer = fs.readFileSync(filePath);
+  let mime = mimeType || 'image/jpeg';
 
-  // Determinar el MIME type para el data URL
-  const mime = mimeType || 'image/jpeg';
+  // GPT-4o Vision NO acepta PDFs directamente. Convertir PDF a imagen.
+  if (mime === 'application/pdf' || filePath.toLowerCase().endsWith('.pdf')) {
+    const { execFileSync } = await import('child_process');
+    const outPrefix = filePath.replace(/\.pdf$/i, '') + '_page1';
+    try {
+      execFileSync('pdftoppm', ['-png', '-f', '1', '-l', '1', '-r', '200', filePath, outPrefix], { timeout: 15000 });
+      // pdftoppm genera archivos como archivo_page1-1.png
+      const convertedFile = outPrefix + '-1.png';
+      if (!fs.existsSync(convertedFile)) {
+        // Algunas versiones nombran distinto
+        const dir = require('path').dirname(filePath);
+        const files = fs.readdirSync(dir).filter(f => f.startsWith(require('path').basename(outPrefix)) && f.endsWith('.png'));
+        if (files.length === 0) throw new Error('No se pudo convertir el PDF');
+        buffer = fs.readFileSync(require('path').join(dir, files[0]));
+      } else {
+        buffer = fs.readFileSync(convertedFile);
+      }
+      mime = 'image/png';
+    } catch (e) {
+      console.error('[aiVision] PDF conversion error:', e.message);
+      throw new Error('No se pudo convertir el PDF a imagen. Intenta subir una foto del documento.');
+    }
+  }
+
+  const base64 = buffer.toString('base64');
   const dataUrl = `data:${mime};base64,${base64}`;
 
   const body = {
