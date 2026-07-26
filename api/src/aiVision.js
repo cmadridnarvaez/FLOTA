@@ -5,6 +5,7 @@
 // y devuelve los datos estructurados del documento (tipo, vence, patente...)
 // ============================================================================
 import fs from 'fs';
+import path from 'path';
 import { config } from './config.js';
 import { getEmpresaConfig, AI_PROVIDERS } from './routes/config.js';
 
@@ -86,10 +87,10 @@ export async function analizarDocumento(filePath, mimeType, empresaId) {
       const convertedFile = outPrefix + '-1.png';
       if (!fs.existsSync(convertedFile)) {
         // Algunas versiones nombran distinto
-        const dir = require('path').dirname(filePath);
-        const files = fs.readdirSync(dir).filter(f => f.startsWith(require('path').basename(outPrefix)) && f.endsWith('.png'));
+        const dir = path.dirname(filePath);
+        const files = fs.readdirSync(dir).filter(f => f.startsWith(path.basename(outPrefix)) && f.endsWith('.png'));
         if (files.length === 0) throw new Error('No se pudo convertir el PDF');
-        buffer = fs.readFileSync(require('path').join(dir, files[0]));
+        buffer = fs.readFileSync(path.join(dir, files[0]));
       } else {
         buffer = fs.readFileSync(convertedFile);
       }
