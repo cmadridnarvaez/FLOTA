@@ -1996,7 +1996,7 @@ function vConfigContent() {
   h += '<div class="campo"><label for="cfg-resend-from">Email origen</label><input id="cfg-resend-from" placeholder="flota@tudominio.com" value="' + esc(effFrom) + '"></div>';
   h += '<div class="campo"><label for="cfg-resend-to">Email destino (alertas)</label><input id="cfg-resend-to" placeholder="pagos@tudominio.com" value="' + esc(effTo) + '"></div>';
 
-  h += '<div class="fila-botones"><button class="btn" id="cfg-btn">Guardar configuración</button></div>';
+  h += '<div class="fila-botones"><button class="btn" id="cfg-btn">Guardar configuración</button> <button type="button" class="btn sec" id="cfg-test-btn" onclick="probarIA()">Probar conexión IA</button></div>';
   h += '</form>';
   return h;
 }
@@ -2015,6 +2015,26 @@ function onProviderChange() {
     c.ai_model = pvInfo.modelos[0];
   }
   render();
+}
+
+// Probar conexión IA antes de guardar (valida URL, key y modelo con 1 token)
+async function probarIA() {
+  var btn = $('cfg-test-btn'); btn.disabled = true; btn.textContent = 'Probando...';
+  var body = {
+    ai_provider: mv('cfg-provider'),
+    ai_model: mv('cfg-ai-model'),
+    ai_base_url: mv('cfg-baseurl'),
+  };
+  var aiKey = mv('cfg-ai-key').trim();
+  if (aiKey) body.openai_api_key = aiKey;
+  try {
+    var r = await api('/config/test-ia', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    toast(r.message, r.ok ? 'ok' : 'err');
+  } catch (err) {
+    toast(err.message || 'No se pudo probar la conexión', 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Probar conexión IA';
+  }
 }
 
 async function guardarConfig(e) {

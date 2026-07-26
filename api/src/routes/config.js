@@ -5,6 +5,7 @@ import { Router } from 'express';
 import { pool } from '../db.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { config } from '../config.js';
+import { probarConfigIA } from '../aiVision.js';
 
 export const configRouter = Router();
 configRouter.use(requireAuth);
@@ -88,6 +89,23 @@ configRouter.get('/', requireAdmin, async (req, res) => {
     },
     providers: AI_PROVIDERS,
   });
+});
+
+// POST /api/config/test-ia — prueba la conexión al provider IA con los
+// valores del form (sin haber guardado aún). Si la API key viene vacía,
+// usa la key existente de la empresa (o la del server si provider=openai).
+configRouter.post('/test-ia', requireAdmin, async (req, res) => {
+  const empresaId = req.user.empresa_id;
+  const b = req.body || {};
+  const { rows: existing } = await pool.query('SELECT * FROM empresa_config WHERE empresa_id = $1', [empresaId]);
+  const ec = existing[0];
+  const provider = b.ai_provider || ec?.ai_provider || 'openai';
+  const providerInfo = AI_PROVIDERS[provider] || AI_PROVIDERS.openai;
+  const baseUrl = provider === 'custom' ? (b.ai_base_url !== undefined ? b.ai_base_url : ec?.ai_base_url) : providerInfo.baseUrl;
+  const modelo = b.ai_model || ec?.ai_model || providerInfo.modelos[0] || 'gpt-4o';
+  const apiKey = b.openai_api_key || ec?.openai_api_key || (provider === 'openai' ? config.openaiApiKey : '') || '';
+  const result = await probarConfigIA({ provider, baseUrl, modelo, apiKey });
+  res.json(result);
 });
 
 // PUT /api/config

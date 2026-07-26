@@ -64,6 +64,51 @@ export async function iaDisponible(empresaId) {
   return !!(c.baseUrl && (c.apiKey || !c.requiereKey));
 }
 
+// Probar conexión con un provider IA (valida URL, key y modelo) con un
+// chat completion de 1 token. Acepta valores "nuevos" (no guardados aún)
+// para poder testear ANTES de guardar en Configuración.
+export async function probarConfigIA({ provider, baseUrl, modelo, apiKey }) {
+  const providerInfo = AI_PROVIDERS[provider] || AI_PROVIDERS.openai;
+  const url = (provider === 'custom' ? baseUrl : providerInfo.baseUrl || '').replace(/\/$/, '');
+  const key = apiKey || '';
+  if (!url) return { ok: false, message: 'Falta la URL del proveedor.' };
+  if (!providerInfo.sinKey && !key) {
+    return { ok: false, message: 'Falta la API key de ' + (providerInfo.nombre || provider) + '.' };
+  }
+  const mod = modelo || providerInfo.modelos[0] || 'gpt-4o';
+  const headers = { 'Content-Type': 'application/json' };
+  if (key) headers.Authorization = 'Bearer ' + key;
+  if (provider === 'openrouter') {
+    headers['HTTP-Referer'] = 'https://github.com/cmadridnarvaez/FLOTA';
+    headers['X-Title'] = 'FLOTA';
+  }
+  const t0 = Date.now();
+  try {
+    const r = await fetch(url + '/chat/completions', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: mod,
+        messages: [{ role: 'user', content: 'ping' }],
+        max_tokens: 1,
+        temperature: 0,
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const latency = Date.now() - t0;
+    if (r.ok) return { ok: true, message: 'Conexión OK con ' + providerInfo.nombre + ' · ' + mod + ' · ' + latency + ' ms', latency };
+    if (r.status === 401 || r.status === 403) return { ok: false, message: 'API key inválida o sin permisos (' + providerInfo.nombre + ').' };
+    if (r.status === 404) return { ok: false, message: 'Modelo no encontrado: ' + mod + '. Revísalo en el catálogo de ' + providerInfo.nombre + '.' };
+    if (r.status === 429) return { ok: false, message: providerInfo.nombre + ' rate limit o sin saldo/créditos.' };
+    return { ok: false, message: 'Error HTTP ' + r.status + ' de ' + providerInfo.nombre + '.' };
+  } catch (e) {
+    if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+      return { ok: false, message: 'Timeout conectando a ' + providerInfo.nombre + '. ¿URL correcta / red disponible?' };
+    }
+    return { ok: false, message: 'No se pudo conectar: ' + e.message };
+  }
+}
+
 export async function analizarDocumento(filePath, mimeType, empresaId) {
   const ia = await resolverConfigIA(empresaId);
   if (!ia.baseUrl) {
