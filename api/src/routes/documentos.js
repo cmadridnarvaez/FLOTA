@@ -5,7 +5,7 @@ import fs from 'fs';
 import { pool } from '../db.js';
 import { requireAuth, vehiculosVisibles, puedeAccederVehiculo } from '../middleware/auth.js';
 import { config } from '../config.js';
-import { analizarDocumento } from '../aiVision.js';
+import { analizarDocumento, iaDisponible } from '../aiVision.js';
 
 export const docsRouter = Router();
 docsRouter.use(requireAuth);
@@ -68,7 +68,7 @@ let _analizarTimestamps = [];
 const _analizarCooldown = 5 * 60 * 1000; // 5 min
 const _analizarMax = 5;
 
-// POST /api/documentos/analizar — analizar documento con GPT-4o Vision
+// POST /api/documentos/analizar — analizar documento con IA (visión)
 // Recibe multipart con archivo temporal, lo procesa con IA, NO lo guarda
 docsRouter.post('/analizar', upload.single('archivo'), async (req, res) => {
   const ahora = Date.now();
@@ -81,9 +81,9 @@ docsRouter.post('/analizar', upload.single('archivo'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Debes subir un archivo para analizar' });
   }
-  if (!config.openaiApiKey) {
+  if (!(await iaDisponible(req.user.empresa_id))) {
     fs.promises.unlink(req.file.path).catch(() => {});
-    return res.status(503).json({ error: 'Análisis IA no disponible. Contacta al administrador.' });
+    return res.status(503).json({ error: 'Análisis IA no disponible. Configura un proveedor en Configuración.' });
   }
 
   // Validar tipo de archivo (magic number)
@@ -314,8 +314,8 @@ docsRouter.post('/:id/analizar-ia', async (req, res) => {
   const full = path.join(config.storageDir, d.archivo_path);
   if (!fs.existsSync(full)) return res.status(404).json({ error: 'Archivo no encontrado en disco' });
 
-  if (!config.openaiApiKey) {
-    return res.status(503).json({ error: 'Análisis IA no disponible. Contacta al administrador.' });
+  if (!(await iaDisponible(req.user.empresa_id))) {
+    return res.status(503).json({ error: 'Análisis IA no disponible. Configura un proveedor en Configuración.' });
   }
 
   // Determinar MIME desde la extensión
