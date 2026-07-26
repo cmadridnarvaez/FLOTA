@@ -244,7 +244,9 @@ usuarios ──┬── acceso_vehiculo ──── vehiculos
 
 ## 📜 Licencia
 
-Propiedad de **CMD Servicios Tecnológicos SpA**. Todos los derechos reservados.
+Este proyecto está bajo la licencia **MIT**. Ver [LICENSE](LICENSE).
+
+Copyright © 2026 CMD Servicios Tecnológicos SpA.
 
 ---
 

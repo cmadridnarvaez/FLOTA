@@ -5,9 +5,9 @@ WORKDIR /app
 # Instalar poppler-utils para conversión PDF → imagen (GPT-4o Vision)
 RUN apk add --no-cache poppler-utils
 
-# Instalar dependencias primero (mejor cache)
-COPY package.json ./
-RUN npm install --omit=dev && npm cache clean --force
+# Instalar dependencias primero (mejor cache). Requiere package-lock.json.
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Código de la app
 COPY src ./src
