@@ -6,7 +6,8 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "node test/smoke.test.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

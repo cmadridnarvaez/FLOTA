@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Instalar dependencias (npm ci)
+        working-directory: api
+        run: npm ci
+
+      - name: Chequeo de sintaxis (src + JS inline del HTML)
+        run: |
+          set -e
+          # Backend
+          find api/src -name '*.js' -exec node --check {} \;
+          # JS inline del SPA
+          awk '/<script>/{f=1;next}/<\/script>/{f=0}f' web/public/index.html > /tmp/inline.js
+          node --check /tmp/inline.js
+
+      - name: Smoke tests
+        working-directory: api
+        run: npm test
+
+      - name: Validar docker-compose
+        run: docker compose config -q
