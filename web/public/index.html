@@ -1905,7 +1905,7 @@ function vConfig() {
 }
 
 async function cargarConfig() {
-  try { var r = await api('/config'); S_CONFIG = r.data; } catch { S_CONFIG = {}; }
+  try { var r = await api('/config'); S_CONFIG = r.data || {}; S_CONFIG.providers = r.providers || {}; } catch { S_CONFIG = {}; }
   if (S.tab === 'config') render();
 }
 
@@ -2056,7 +2056,7 @@ async function guardarConfig(e) {
     await api('/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     toast('Configuración guardada', 'ok');
     S_CONFIG = null;
-    var r = await api('/config'); S_CONFIG = r.data;
+    var r = await api('/config'); S_CONFIG = r.data || {}; S_CONFIG.providers = r.providers || {};
     render();
   } catch (err) { toast(err.message, 'err'); }
   finally { btn.disabled = false; btn.textContent = 'Guardar configuración'; }
