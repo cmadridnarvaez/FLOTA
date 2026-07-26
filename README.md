@@ -18,7 +18,8 @@ FLOTA es una plataforma completa para administrar flotas vehiculares: documentos
 
 ### Documentos con IA
 - **Versionado automático** — cada renovación archiva la versión anterior, siempre vigente disponible
-- **Análisis con GPT-4o Vision** — sube una foto del SOAP, permiso o revisión y la IA extrae tipo, vencimiento, patente y titular automáticamente
+- **Análisis con visión** — sube una foto del SOAP, permiso o revisión y la IA extrae tipo, vencimiento, patente y titular automáticamente
+- **Multi-proveedor** — OpenAI, OpenRouter, Groq, Ollama (local) o cualquier endpoint OpenAI-compatible, configurable por empresa desde la UI
 - **Almacenamiento de archivos** — PDF e imágenes hasta 25MB con validación de seguridad
 - **Historial de versiones** — acceso a copias anteriores de cada documento
 
@@ -65,7 +66,7 @@ FLOTA es una plataforma completa para administrar flotas vehiculares: documentos
 | **Base de datos** | PostgreSQL 17 |
 | **Reverse proxy** | nginx |
 | **Deploy** | Docker Compose + Cloudflare Tunnel |
-| **IA** | OpenAI GPT-4o Vision |
+| **IA** | Cualquier API OpenAI-compatible (OpenAI, OpenRouter, Groq, Ollama) |
 | **Email** | Resend API |
 | **DNS/SSL** | Cloudflare |
 
@@ -91,7 +92,7 @@ FLOTA/
 │       ├── db.js             Pool PostgreSQL + type parsers
 │       ├── auth.js           JWT + bcrypt + refresh tokens
 │       ├── seed.js           Bootstrap del admin
-│       ├── aiVision.js       GPT-4o Vision (PDF→imagen→análisis)
+│       ├── aiVision.js       Análisis IA multi-proveedor (PDF→imagen→análisis)
 │       ├── boostr.js         AutoRiesgo/Boostr (lookup patentes)
 │       ├── notifier.js       Alertas de email (Resend)
 │       ├── middleware/
@@ -152,7 +153,9 @@ ADMIN_EMAIL=admin@empresa.com
 ADMIN_PASSWORD=<password-inicial>
 ADMIN_NOMBRE=Administrador
 
-# OpenAI (GPT-4o Vision para análisis de documentos)
+# OpenAI (OPCIONAL — fallback del servidor para análisis de documentos)
+# Cada empresa puede configurar su propio proveedor IA desde la UI
+# (OpenAI, OpenRouter, Groq, Ollama local o endpoint personalizado)
 OPENAI_API_KEY=sk-...
 
 # Resend (alertas de email)
@@ -163,6 +166,22 @@ ALERTA_TO=pagos@empresa.com
 # Lookup de patentes (opcional, AutoRiesgo es gratis)
 BOOSTR_API_KEY=
 ```
+
+### Proveedores de IA (análisis de documentos)
+
+Cada empresa elige su proveedor en **Configuración** (pestaña web, solo admin):
+
+| Proveedor | API key | Modelos sugeridos (con visión) |
+|-----------|---------|-------------------------------|
+| **OpenAI** | `sk-...` | `gpt-4o`, `gpt-4o-mini`, `gpt-4.1` |
+| **OpenRouter** | `sk-or-...` | `openai/gpt-4o-mini`, `anthropic/claude-3.5-sonnet`, `google/gemini-2.5-flash` |
+| **Groq** | `gsk_...` | `meta-llama/llama-4-scout-17b-16e-instruct` |
+| **Ollama** | no requiere | `llama3.2-vision`, `qwen2.5vl`, `llava` |
+| **Personalizado** | según provider | cualquier endpoint `/v1/chat/completions` OpenAI-compatible |
+
+- El modelo debe soportar **entrada de imágenes (visión)**.
+- Si la empresa no configura nada, se usa `OPENAI_API_KEY` del servidor como fallback (solo para OpenAI).
+- Ollama debe correr en el host Docker (`host.docker.internal:11434`, ya mapeado en `docker-compose.yml`).
 
 ### Comandos
 ```bash
