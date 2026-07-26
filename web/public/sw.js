@@ -1,6 +1,6 @@
 // Service Worker — Flota CMD
 // Cache del shell de la app para instalación PWA + offline básico
-const CACHE = 'flota-cmd-v3'; // bump: fuerzas recacheo
+const CACHE = 'flota-cmd-v5';
 const ASSETS = [
   '/manifest.json',
   '/cmd-logo.png',

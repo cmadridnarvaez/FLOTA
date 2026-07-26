@@ -2143,7 +2143,7 @@ async function cargarEmpresas() {
 // Vista: Usuarios (solo admin — con botones Agregar/Editar que abren modal)
 // ============================================================================
 function vUsuarios() {
-  if (USER.rol !== 'admin') return '<div class="vacio">Acceso restringido.</div>';
+  if (USER.rol !== 'admin' && USER.rol !== 'super_admin') return '<div class="vacio">Acceso restringido.</div>';
   var h = '<div class="sec-head">' +
     '<h2 style="margin:0">Usuarios ('+S.users.length+')</h2>' +
     '<button class="btn sm" onclick="modalUser()">'+ico('➕')+'Crear usuario</button></div>';
