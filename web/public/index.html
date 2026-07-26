@@ -1942,6 +1942,8 @@ function vConfigContent() {
     h += '<div class="det" style="margin-top:4px">' + ico('✅') + 'Tu key: <code style="color:var(--green)">' + esc(c.openai_api_key) + '</code> — deja vacío para mantener</div>';
   } else if (eff.ai_source === 'server') {
     h += '<div class="det" style="margin-top:4px">' + ico('🟡') + 'Usando key del servidor: <code style="color:var(--amber)">' + esc(eff.ai_key_masked) + '</code> — pon la tuya para usar tu propia cuenta</div>';
+  } else if (eff.ai_source === 'local') {
+    h += '<div class="det" style="margin-top:4px">' + ico('✅') + esc(eff.ai_provider_nombre || 'Este proveedor') + ' no requiere API key.</div>';
   } else {
     h += '<div class="det" style="margin-top:4px">' + ico('❌') + 'Sin API key. El análisis de documentos no funcionará hasta que configures una.</div>';
   }
@@ -1965,6 +1967,7 @@ function vConfigContent() {
     h += '<input id="cfg-ai-model" placeholder="nombre-del-modelo" value="' + esc(currentModel) + '">';
   }
   h += '</div>';
+  h += '<div class="campo-full"><div class="det">👁️ El modelo debe soportar entrada de imágenes (visión) — el análisis envía fotos de documentos.</div></div>';
 
   // Nota por proveedor
   if (currentProvider === 'openrouter') {
@@ -1972,7 +1975,7 @@ function vConfigContent() {
   } else if (currentProvider === 'groq') {
     h += '<div class="campo-full"><div class="det" style="color:var(--brand-text)">⚡ Groq ofrece inferencia ultrarrápida y gratuita con modelos open-source.</div></div>';
   } else if (currentProvider === 'ollama') {
-    h += '<div class="campo-full"><div class="det" style="color:var(--brand-text)">🏠 Ollama corre modelos localmente (gratis, sin API key). Requiere Ollama instalado en el servidor.</div></div>';
+    h += '<div class="campo-full"><div class="det" style="color:var(--brand-text)">🏠 Ollama corre modelos localmente (gratis, sin API key). La API se conecta a <code>host.docker.internal:11434</code> — Ollama debe estar corriendo en el host Docker.</div></div>';
   }
 
   // Email — Resend
@@ -2389,7 +2392,7 @@ function toggleAnalizarIA() {
   wrap.style.display = (file && file.files.length > 0) ? '' : 'none';
 }
 
-// Analizar documento con GPT-4o Vision
+// Analizar documento con IA (visión)
 async function analizarDocIA() {
   var fileInput = document.getElementById('doc-file');
   if (!fileInput || !fileInput.files.length) { toast('Selecciona un archivo primero', 'err'); return; }

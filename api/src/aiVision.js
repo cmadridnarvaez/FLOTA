@@ -1,7 +1,8 @@
 // ============================================================================
-// Análisis de documentos vehiculares con OpenAI GPT-4o Vision
-// Recibe la ruta de un archivo de imagen/PDF, lo envía a GPT-4o y devuelve
-// los datos estructurados del documento (tipo, vence, patente, etc.)
+// Análisis de documentos vehiculares con IA (cualquier API OpenAI-compatible:
+// OpenAI, OpenRouter, Groq, Ollama u otro endpoint definido por la empresa).
+// Recibe la ruta de un archivo de imagen/PDF, lo envía al modelo con visión
+// y devuelve los datos estructurados del documento (tipo, vence, patente...)
 // ============================================================================
 import fs from 'fs';
 import { config } from './config.js';
@@ -31,37 +32,51 @@ Reglas:
 - Si la imagen no es un documento vehicular, responde {"tipo": "otro", "confianza": "baja", "descripcion": "No parece un documento vehicular"}.
 - Si no puedes leer algún campo, pon null.`;
 
-export async function analizarDocumento(filePath, mimeType, empresaId) {
-  // Resolver config: empresa_config → server .env
-  let apiKey = config.openaiApiKey;
-  let modelo = 'gpt-4o';
-  let baseUrl = 'https://api.openai.com/v1';
-  let extraHeaders = {};
-
+// Resuelve la configuración IA efectiva de una empresa:
+// empresa_config (DB) → fallback del server (.env) solo para provider OpenAI.
+// NUNCA se envía la OPENAI_API_KEY del servidor a un provider distinto de OpenAI.
+export async function resolverConfigIA(empresaId) {
+  let ec = {};
   if (empresaId) {
-    try {
-      const ec = await getEmpresaConfig(empresaId);
-      if (ec.openai_api_key) apiKey = ec.openai_api_key;
-      if (ec.ai_model) modelo = ec.ai_model;
-      if (ec.ai_provider) {
-        const providerInfo = AI_PROVIDERS[ec.ai_provider];
-        if (ec.ai_provider === 'custom' && ec.ai_base_url) {
-          baseUrl = ec.ai_base_url;
-        } else if (providerInfo) {
-          baseUrl = providerInfo.baseUrl;
-        }
-      }
-    } catch {}
+    try { ec = await getEmpresaConfig(empresaId); } catch {}
   }
-  if (!apiKey) {
-    throw new Error('Análisis IA no disponible. Configura tu API key en Configuración.');
+  const provider = ec.ai_provider || 'openai';
+  const providerInfo = AI_PROVIDERS[provider] || AI_PROVIDERS.openai;
+  const baseUrl = (provider === 'custom')
+    ? (ec.ai_base_url || '')
+    : (providerInfo.baseUrl || ec.ai_base_url || '');
+  const modelo = ec.ai_model || providerInfo.modelos[0] || 'gpt-4o';
+  const apiKey = ec.openai_api_key || (provider === 'openai' ? config.openaiApiKey : '');
+  return {
+    provider,
+    nombre: providerInfo.nombre || provider,
+    baseUrl: baseUrl.replace(/\/$/, ''),
+    modelo,
+    apiKey,
+    requiereKey: !providerInfo.sinKey,
+  };
+}
+
+// ¿La empresa puede usar el análisis IA con su config actual?
+export async function iaDisponible(empresaId) {
+  const c = await resolverConfigIA(empresaId);
+  return !!(c.baseUrl && (c.apiKey || !c.requiereKey));
+}
+
+export async function analizarDocumento(filePath, mimeType, empresaId) {
+  const ia = await resolverConfigIA(empresaId);
+  if (!ia.baseUrl) {
+    throw new Error('Análisis IA no disponible. Configura la URL del proveedor en Configuración.');
+  }
+  if (ia.requiereKey && !ia.apiKey) {
+    throw new Error('Análisis IA no disponible. Configura tu API key de ' + ia.nombre + ' en Configuración.');
   }
 
   // Leer archivo
   let buffer = fs.readFileSync(filePath);
   let mime = mimeType || 'image/jpeg';
 
-  // GPT-4o Vision NO acepta PDFs directamente. Convertir PDF a imagen.
+  // Los endpoints de visión no aceptan PDFs directamente. Convertir PDF a imagen.
   if (mime === 'application/pdf' || filePath.toLowerCase().endsWith('.pdf')) {
     const { execFileSync } = await import('child_process');
     const outPrefix = filePath.replace(/\.pdf$/i, '') + '_page1';
@@ -88,15 +103,19 @@ export async function analizarDocumento(filePath, mimeType, empresaId) {
   const base64 = buffer.toString('base64');
   const dataUrl = `data:${mime};base64,${base64}`;
 
+  // "detail: high" es un parámetro específico de OpenAI; otros providers lo omiten
+  const imagePayload = { url: dataUrl };
+  if (ia.provider === 'openai') imagePayload.detail = 'high';
+
   const body = {
-    model: modelo,
+    model: ia.modelo,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
         content: [
           { type: 'text', text: 'Analiza este documento vehicular chileno y extrae los datos.' },
-          { type: 'image_url', image_url: { url: dataUrl, detail: 'high' } },
+          { type: 'image_url', image_url: imagePayload },
         ],
       },
     ],
@@ -104,27 +123,34 @@ export async function analizarDocumento(filePath, mimeType, empresaId) {
     temperature: 0.1,
   };
 
-  const r = await fetch(baseUrl.replace(/\/$/, '') + '/chat/completions', {
+  const headers = { 'Content-Type': 'application/json' };
+  if (ia.apiKey) headers.Authorization = 'Bearer ' + ia.apiKey;
+  // Headers opcionales recomendados por OpenRouter (ranking de apps)
+  if (ia.provider === 'openrouter') {
+    headers['HTTP-Referer'] = 'https://github.com/cmadridnarvaez/FLOTA';
+    headers['X-Title'] = 'FLOTA';
+  }
+
+  const r = await fetch(ia.baseUrl + '/chat/completions', {
     method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + apiKey,
-      'Content-Type': 'application/json',
-      ...extraHeaders,
-    },
+    headers,
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(30000),
   });
 
   if (!r.ok) {
     const errText = await r.text();
-    console.error('[aiVision] OpenAI error:', r.status, errText.slice(0, 200));
-    if (r.status === 429) {
-      if (errText.includes('quota') || errText.includes('billing')) {
-        throw new Error('La cuenta de OpenAI no tiene saldo. Recarga créditos en platform.openai.com');
-      }
-      throw new Error('OpenAI rate limit. Reintenta en unos segundos.');
+    console.error('[aiVision] ' + ia.nombre + ' error:', r.status, errText.slice(0, 200));
+    if (r.status === 401 || r.status === 403) {
+      throw new Error('API key de ' + ia.nombre + ' inválida o sin permisos. Revísala en Configuración.');
     }
-    throw new Error('Error al contactar OpenAI (HTTP ' + r.status + ')');
+    if (r.status === 429) {
+      if (errText.includes('quota') || errText.includes('billing') || errText.includes('insufficient')) {
+        throw new Error('La cuenta de ' + ia.nombre + ' no tiene saldo/créditos disponibles.');
+      }
+      throw new Error(ia.nombre + ' rate limit. Reintenta en unos segundos.');
+    }
+    throw new Error('Error al contactar ' + ia.nombre + ' (HTTP ' + r.status + ')');
   }
 
   const data = await r.json();

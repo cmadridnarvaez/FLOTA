@@ -48,7 +48,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY}
       ALERTA_FROM: ${ALERTA_FROM:-flota@tudominio.com}
       ALERTA_TO: ${ALERTA_TO:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@demo.cl}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ADMIN_NOMBRE: ${ADMIN_NOMBRE:-Cristian Madrid}
@@ -56,6 +56,9 @@ services:
       TZ: America/Santiago
     volumes:
       - autos-storage:/data/storage
+    # Permite alcanzar servicios en el host (p.ej. Ollama en :11434) desde el contenedor
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - autos-net
     # La API NO expone puertos al host (solo accesible vía web/nginx)
