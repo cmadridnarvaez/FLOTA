@@ -69,10 +69,10 @@
 
     --text:        #e8ecf4;
     --text-2:      #aab4cc;
-    --text-3:      #7c89a8;
+    --text-3:      #8491ae;
     --text-faint:  #8390a8;
 
-    --brand-glow:  rgba(var(--neural-rgb, 0, 234, 255), 0.15);
+    --brand-glow:  rgba(var(--neural-color), 0.15);
     --brand-text:  #00eaff;
     --brand-btn-text: #001018;
 
@@ -94,7 +94,7 @@
     --neural-opacity: 0.9;
     --scan-opacity: 0.03;
     --bg-gradient:
-      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0, 32, 128, 0.25), transparent),
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0, 32, 128, 0.25)  /* brand-deep */, transparent),
       radial-gradient(ellipse 60% 50% at 20% 100%, rgba(0, 234, 255, 0.06), transparent),
       radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0, 32, 128, 0.15), transparent);
 
@@ -112,7 +112,7 @@
     --text:        #0f1729;
     --text-2:      #3d4a66;
     --text-3:      #5a6783;
-    --text-faint:  #6e7a94;
+    --text-faint:  #5d6a86;
 
     --brand-glow:  rgba(0, 32, 128, 0.10);
     --brand-text:  #0066cc;
@@ -791,8 +791,8 @@
 
   /* Logo: sutil glow pulsante en login */
   @keyframes glow-pulse {
-    0%, 100% { filter: drop-shadow(0 0 4px rgba(var(--neural-rgb, 0, 234, 255), 0.15)); }
-    50%      { filter: drop-shadow(0 0 12px rgba(var(--neural-rgb, 0, 234, 255), 0.35)); }
+    0%, 100% { filter: drop-shadow(0 0 4px rgba(var(--neural-color), 0.15)); }
+    50%      { filter: drop-shadow(0 0 12px rgba(var(--neural-color), 0.35)); }
   }
   #login .logo { animation: glow-pulse 3s ease-in-out infinite; }
 
@@ -922,16 +922,9 @@
     animation: confetti-fall 2.5s var(--ease-out-quart) forwards;
   }
 
-  /* Pulse verde de éxito al guardar */
-  @keyframes success-pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
-    100% { box-shadow: 0 0 0 16px rgba(52, 211, 153, 0); }
-  }
-  .btn.success-pulse { animation: success-pulse 0.6s var(--ease-out-quart); }
-
   /* Badge de estado con tooltip */
   .badge { position: relative; cursor: default; }
-  .badge:hover::after {
+  .badge[data-tip]:hover::after {
     content: attr(data-tip);
     position: absolute;
     bottom: 130%; left: 50%;
@@ -947,7 +940,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .check-anim path, .confetti-piece, .btn.success-pulse { animation: none !important; }
+    .check-anim path, .confetti-piece { animation: none !important; }
   }
 
   /* ============================================================================
@@ -963,20 +956,6 @@
     animation: view-enter 0.25s var(--ease-out-quart) both;
   }
 
-  /* Fade-out al eliminar un item (antes de remove del DOM) */
-  @keyframes item-out {
-    to { opacity: 0; transform: translateX(24px); height: 0; padding: 0; margin: 0; overflow: hidden; }
-  }
-  .item.removing {
-    animation: item-out 0.3s var(--ease-out-quart) forwards;
-  }
-  .card.removing {
-    animation: item-out 0.3s var(--ease-out-quart) forwards;
-  }
-  tbody tr.removing {
-    animation: item-out 0.3s var(--ease-out-quart) forwards;
-  }
-
   /* Hover lift en filas de tabla (más refinos que solo bg) */
   @media (hover: hover) {
     tbody tr {
@@ -984,16 +963,11 @@
     }
   }
 
-  /* Badge pulse al cambiar de estado (vencido → al día tras editar) */
-  @keyframes badge-pop {
-    0%   { transform: scale(1); }
-    50%  { transform: scale(1.15); }
     100% { transform: scale(1); }
   }
-  .badge.badge-pop { animation: badge-pop 0.35s var(--ease-out-quart); }
 
   @media (prefers-reduced-motion: reduce) {
-    #view > section, .item.removing, .card.removing, tbody tr.removing, .badge.badge-pop {
+    #view > section {
       animation: none !important;
     }
   }
@@ -1377,6 +1351,8 @@ function render() {
   }).join('');
   var f = { resumen: vResumen, flota: vFlota, documentos: vDocs, mantenciones: vMant, gastos: vGastos, chile: vChile, usuarios: vUsuarios, ficha: vFichaVeh, empresas: vEmpresas, config: vConfig };
   $('view').innerHTML = '<section role="tabpanel" id="panel-'+S.tab+'" aria-labelledby="tab-'+S.tab+'">' + f[S.tab]() + '</section>';
+  // M2: Tablist ARIA — navegación con flechas
+  setupTabArrows();
   // Disparar count-up de KPIs cuando se muestra el resumen
   if (S.tab === 'resumen') {
     animarKPIs();
@@ -1387,6 +1363,24 @@ function render() {
     }
   }
 }
+// Navegación por flechas en el tablist (ARIA compliant)
+function setupTabArrows() {
+  var tablist = $('tabs');
+  if (!tablist || tablist._arrowsSetup) return;
+  tablist._arrowsSetup = true;
+  tablist.addEventListener('keydown', function(e) {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
+    var tabs = Array.from(tablist.querySelectorAll('[role="tab"]'));
+    var current = tabs.findIndex(function(t) { return t.getAttribute('aria-selected') === 'true'; });
+    var next = current;
+    if (e.key === 'ArrowRight') next = (current + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabs.length - 1;
+    if (next !== current) { e.preventDefault(); tabs[next].focus(); irA(tabs[next].id.replace('tab-', '')); }
+  });
+}
+
 function irA(t) { S.tab = t; render(); }
 
 // Count-up animado para KPIs (delight: los números "cuentan" al cargar el resumen)
@@ -2280,7 +2274,7 @@ function modalVeh(id) {
 function camposVeh(v) {
   return '' +
     '<div class="campo"><label for="veh-nom">Nombre *</label><input id="veh-nom" required maxlength="100" value="' + val(v,'nombre') + '"></div>' +
-    '<div class="campo campo-full-line"><div style="flex:1"><label for="veh-pat">Patente</label><input id="veh-pat" maxlength="10" style="text-transform:uppercase" maxlength="8" value="' + val(v,'patente') + '"></div>' +
+    '<div class="campo campo-full-line"><div style="flex:1"><label for="veh-pat">Patente</label><input id="veh-pat" maxlength="8" style="text-transform:uppercase" value="' + val(v,'patente') + '"></div>' +
     '<button type="button" class="btn sec sm" onclick="lookupPatenteModal()" id="veh-lookup-btn" style="min-height:44px">'+ico('🔍')+'Consultar</button></div>' +
     '<div class="campo"><label for="veh-tit">Titular</label><input id="veh-tit" value="' + val(v,'titular') + '"></div>' +
     '<div class="campo"><label for="veh-tipo">Tipo</label><select id="veh-tipo"><option value="calle"' + (v&&v.tipo==='calle'?' selected':'') + '>Calle</option><option value="deportivo"' + (v&&v.tipo==='deportivo'?' selected':'') + '>Deportivo (solo registro)</option></select></div>' +
@@ -2816,7 +2810,6 @@ if ('serviceWorker' in navigator) {
   });
   // Pausar canvas cuando la pestaña está oculta (ahorro de batería/CPU en móvil)
   var neuralRAF = null;
-  var origDibujar = dibujar;
   dibujar = function() { neuralRAF = requestAnimationFrame(dibujar); };
   document.addEventListener('visibilitychange', function() {
     if (document.hidden && neuralRAF) { cancelAnimationFrame(neuralRAF); neuralRAF = null; }
@@ -2847,7 +2840,7 @@ if ('serviceWorker' in navigator) {
       'top:' + (rect.top + rect.height / 2) + 'px',
       'width:8px', 'height:8px',
       'border-radius:50%',
-      'background:rgba(0,234,255,0.5)',
+      'background:rgba(var(--neural-color),0.5)',
       'pointer-events:none',
       'z-index:9999',
       'transform:translate(-50%,-50%)',
