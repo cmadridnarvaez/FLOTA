@@ -70,9 +70,9 @@
     --text:        #e8ecf4;
     --text-2:      #aab4cc;
     --text-3:      #7c89a8;
-    --text-faint:  #6b7894;
+    --text-faint:  #8390a8;
 
-    --brand-glow:  rgba(0, 234, 255, 0.15);
+    --brand-glow:  rgba(var(--neural-rgb, 0, 234, 255), 0.15);
     --brand-text:  #00eaff;
     --brand-btn-text: #001018;
 
@@ -112,7 +112,7 @@
     --text:        #0f1729;
     --text-2:      #3d4a66;
     --text-3:      #5a6783;
-    --text-faint:  #6a7a96;
+    --text-faint:  #6e7a94;
 
     --brand-glow:  rgba(0, 32, 128, 0.10);
     --brand-text:  #0066cc;
@@ -787,8 +787,8 @@
 
   /* Logo: sutil glow pulsante en login */
   @keyframes glow-pulse {
-    0%, 100% { filter: drop-shadow(0 0 4px rgba(0, 234, 255, 0.15)); }
-    50%      { filter: drop-shadow(0 0 12px rgba(0, 234, 255, 0.35)); }
+    0%, 100% { filter: drop-shadow(0 0 4px rgba(var(--neural-rgb, 0, 234, 255), 0.15)); }
+    50%      { filter: drop-shadow(0 0 12px rgba(var(--neural-rgb, 0, 234, 255), 0.35)); }
   }
   #login .logo { animation: glow-pulse 3s ease-in-out infinite; }
 
@@ -1010,7 +1010,7 @@
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    opacity: 0.5;
+    opacity: 0.7;
     transition: opacity 0.3s var(--ease-out-quart);
     position: relative;
     z-index: 1;
@@ -1280,15 +1280,6 @@ function celebrar() {
   }
 }
 
-// Animate: fade-out suave antes de eliminar un elemento del DOM
-function eliminarConAnimacion(el, callback) {
-  if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    if (callback) callback();
-    return;
-  }
-  el.classList.add('removing');
-  setTimeout(function() { if (callback) callback(); }, 300);
-}
 
 // ============================================================================
 // Auth
@@ -1707,7 +1698,7 @@ async function verHistorialDoc(id) {
       var badge = v.es_vigente ? '<span class="badge verde">Vigente</span>' : '<span class="badge gris">Archivada</span>';
       var fechaSubida = fmtFH(v.creado_en);
       var verBtn = v.archivo_path ? '<button class="btn sec sm" onclick="verDoc('+v.id+')">'+ico('📄')+'Ver archivo</button>' : '';
-      return '<div class="item '+(v.es_vigente?'':'gris')+'" style="margin-bottom:6px">'+
+      return '<div class="item '+(v.es_vigente?'':'gris')+'" style="margin-bottom:8px">'+
         '<div><div class="det">'+(TIPOS[v.tipo]||v.tipo)+'</div>'+
         '<div class="det">'+esc(v.descripcion||'')+(v.vence?' · vence '+fmtF(v.vence):'')+'</div>'+
         '<div class="det" style="color:var(--text-faint)">Subido: '+fechaSubida+'</div></div>'+
@@ -1740,12 +1731,6 @@ async function borrarDoc(id) {
   catch (err) { toast(err.message, 'err'); }
 }
 
-// Helper: fade-out suave antes de recargar vista tras eliminar
-function animarEliminar(selector, id, callback) {
-  var el = document.querySelector(selector + '[data-id="'+id+'"]');
-  if (!el) { callback(); return; }
-  eliminarConAnimacion(el, callback);
-}
 
 // ============================================================================
 // Vista: Mantenciones (con botones Agregar/Editar que abren modal)
@@ -1782,7 +1767,7 @@ function vGastos() {
   var h = '<div class="sec-head">' +
     '<h2 style="margin:0">Gastos</h2>' +
     '<button class="btn sm" onclick="modalGasto()">'+ico('➕')+'Registrar gasto</button></div>';
-  h += '<div class="kpis" style="margin:14px 0"><div class="kpi"><div class="num">'+fmtM(tot)+'</div><div class="lbl">Total '+anio+'</div></div>';
+  h += '<div class="kpis" style="margin:12px 0"><div class="kpi"><div class="num">'+fmtM(tot)+'</div><div class="lbl">Total '+anio+'</div></div>';
   Object.keys(CATS).forEach(function(c){
     var s = delAnio.filter(function(g){return g.categoria===c;}).reduce(function(a,g){return a+Number(g.monto||0);},0);
     if (s>0) h += '<div class="kpi"><div class="num" style="font-size:var(--fs-md)">'+fmtM(s)+'</div><div class="lbl">'+CATS[c]+'</div></div>';
@@ -2186,7 +2171,7 @@ function abrirModal(opts) {
         '<button class="cerrar-x" onclick="cerrarModal()" aria-label="Cerrar">'+ico('✕')+'</button>' +
       '</div>' +
       '<div class="modal-body">' +
-        (opts.subtitulo ? '<p style="font-size:var(--fs-sm);color:var(--text-3);margin-bottom:14px">'+esc(opts.subtitulo)+'</p>' : '') +
+        (opts.subtitulo ? '<p style="font-size:var(--fs-sm);color:var(--text-3);margin-bottom:12px">'+esc(opts.subtitulo)+'</p>' : '') +
         '<form id="modal-form"'+enctypeAttr+'>' + opts.bodyHtml + '</form>' +
       '</div>' +
       '<div class="modal-foot">' +
@@ -2647,7 +2632,7 @@ function modalMostrarKey(apiKey, nombre) {
     subtitulo: 'Copia esta key ahora. Por seguridad no se volverá a mostrar.',
     bodyHtml:
       '<div style="background:var(--bg);border:1px solid var(--brand-text);border-radius:8px;padding:14px;margin-bottom:12px">' +
-        '<div style="font-size:var(--fs-sm);color:var(--text-3);margin-bottom:6px">'+esc(nombre)+'</div>' +
+        '<div style="font-size:var(--fs-sm);color:var(--text-3);margin-bottom:8px">'+esc(nombre)+'</div>' +
         '<code style="font-family:JetBrains Mono,monospace;font-size:var(--fs-sm);word-break:break-all;color:var(--brand-text)">'+esc(apiKey)+'</code>' +
       '</div>' +
       '<div style="font-size:var(--fs-sm);color:var(--text-3);margin-bottom:8px">Uso: agrega el header <code>X-API-Key</code> a tus requests:</div>' +
@@ -2674,7 +2659,7 @@ async function revocarApiKey(userId, keyId) {
     // Re-abrir el modal actualizado
     var u = S.users.find(function(x){ return Number(x.id) === Number(userId); });
     modalApiKeys(userId, u ? u.email : '');
-  } catch (err) { toast('Error: ' + err.message, 'err'); }
+  } catch (err) { toast(err.message, 'err'); }
 }
 
 // ============================================================================
@@ -2686,7 +2671,7 @@ async function revocarApiKey(userId, keyId) {
 })();
 
 // Easter egg: mensaje para curiosos en la consola
-console.log('%c🚗 CMD Servicios Tecnológicos SpA', 'font-size:20px;font-weight:700;color:#00eaff;');
+console.log('%c🚗 CMD Servicios Tecnológicos SpA', 'font-size:20px;font-weight:700;color:var(--brand-text);');
 console.log('%cGestión de Flota Vehicular — ¿Revisando el código? Bienvenido.', 'color:#7c89a8;');
 
 // ============================================================================
