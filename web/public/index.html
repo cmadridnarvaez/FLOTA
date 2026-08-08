@@ -286,8 +286,8 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 10px;
+    margin-bottom: 14px;
   }
   .sec-head h2 { margin: 0; }
 
@@ -323,7 +323,7 @@
   /* ============================================================================
      KPIs
      ========================================================================== */
-  .kpis { display: flex; gap: clamp(8px, 2vw, 14px); flex-wrap: wrap; }
+  .kpis { display: flex; gap: clamp(8px, 2vw, 14px); flex-wrap: wrap; align-items: stretch; }
   .kpi {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -337,6 +337,7 @@
     font-size: var(--fs-num);
     font-weight: 700;
     letter-spacing: 0.02em;
+    line-height: 1.2;
   }
   .kpi .lbl { font-size: var(--fs-sm); color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; }
   .rojo-t { color: var(--red); } .amarillo-t { color: var(--amber); } .verde-t { color: var(--green); }
@@ -355,8 +356,8 @@
     align-items: center;
     flex-wrap: wrap;
   }
-  .item .tit { font-weight: 600; font-size: var(--fs-md); }
-  .item .det { font-size: var(--fs-sm); color: var(--text-3); }
+  .item .tit { font-weight: 600; font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; }
+  .item .det { font-size: var(--fs-sm); color: var(--text-3); word-break: break-word; }
   .badge {
     font-size: var(--fs-sm);
     font-weight: 700;
@@ -393,8 +394,8 @@
   .card.rojo::before { background: var(--red); }
   .card.amarillo::before { background: var(--amber); }
   .card.verde::before { background: var(--green); }
-  .card .nom { font-weight: 700; font-size: var(--fs-md); }
-  .card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .card .nom { font-weight: 700; font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; min-width: 0; }
   .pat {
     display: inline-block;
     font-size: var(--fs-sm);
@@ -405,6 +406,8 @@
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-weight: 600;
     letter-spacing: 0.05em;
+    word-break: break-all;
+    max-width: 100%;
   }
   .card .sub { font-size: var(--fs-sm); color: var(--text-2); margin-top: 8px; }
   .card .sub2 { font-size: var(--fs-sm); color: var(--text-3); margin-top: 4px; }
@@ -439,6 +442,7 @@
     color: var(--text);
     font-weight: 500;
     word-break: break-all;
+    overflow-wrap: anywhere;
   }
 
   /* ============================================================================
@@ -2275,16 +2279,16 @@ function modalVeh(id) {
 
 function camposVeh(v) {
   return '' +
-    '<div class="campo"><label for="veh-nom">Nombre *</label><input id="veh-nom" required value="' + val(v,'nombre') + '"></div>' +
-    '<div class="campo campo-full-line"><div style="flex:1"><label for="veh-pat">Patente</label><input id="veh-pat" style="text-transform:uppercase" maxlength="8" value="' + val(v,'patente') + '"></div>' +
+    '<div class="campo"><label for="veh-nom">Nombre *</label><input id="veh-nom" required maxlength="100" value="' + val(v,'nombre') + '"></div>' +
+    '<div class="campo campo-full-line"><div style="flex:1"><label for="veh-pat">Patente</label><input id="veh-pat" maxlength="10" style="text-transform:uppercase" maxlength="8" value="' + val(v,'patente') + '"></div>' +
     '<button type="button" class="btn sec sm" onclick="lookupPatenteModal()" id="veh-lookup-btn" style="min-height:44px">'+ico('🔍')+'Consultar</button></div>' +
     '<div class="campo"><label for="veh-tit">Titular</label><input id="veh-tit" value="' + val(v,'titular') + '"></div>' +
     '<div class="campo"><label for="veh-tipo">Tipo</label><select id="veh-tipo"><option value="calle"' + (v&&v.tipo==='calle'?' selected':'') + '>Calle</option><option value="deportivo"' + (v&&v.tipo==='deportivo'?' selected':'') + '>Deportivo (solo registro)</option></select></div>' +
     '<div class="campo"><label for="veh-marca">Marca</label><input id="veh-marca" value="' + val(v,'marca') + '"></div>' +
     '<div class="campo"><label for="veh-modelo">Modelo</label><input id="veh-modelo" value="' + val(v,'modelo') + '"></div>' +
     '<div class="campo"><label for="veh-anio">Año</label><input id="veh-anio" type="number" value="' + val(v,'anio') + '"></div>' +
-    '<div class="campo"><label for="veh-vin">VIN / Chasis</label><input id="veh-vin" value="' + val(v,'vin') + '"></div>' +
-    '<div class="campo"><label for="veh-motor">Motor</label><input id="veh-motor" value="' + val(v,'motor') + '"></div>' +
+    '<div class="campo"><label for="veh-vin">VIN / Chasis</label><input id="veh-vin" maxlength="17" value="' + val(v,'vin') + '"></div>' +
+    '<div class="campo"><label for="veh-motor">Motor</label><input id="veh-motor" maxlength="30" value="' + val(v,'motor') + '"></div>' +
     '<div class="campo"><label for="veh-color">Color</label><input id="veh-color" value="' + val(v,'color') + '"></div>' +
     '<div class="campo campo-full"><label for="veh-notas">Notas</label><textarea id="veh-notas" rows="2">' + val(v,'notas') + '</textarea></div>' +
     // Sección GPS / Tracking
@@ -2358,7 +2362,7 @@ function modalDoc(id) {
       : '<div class="campo campo-full">' + selVehCampo('doc-veh', null) + '</div>') +
     '<div class="campo"><label for="doc-tipo">Tipo *</label><select id="doc-tipo">' + Object.keys(TIPOS).map(function(t){ return '<option value="'+t+'"'+(d&&d.tipo===t?' selected':'')+'>'+TIPOS[t]+'</option>'; }).join('') + '</select></div>' +
     '<div class="campo"><label for="doc-vence">Vence</label><input id="doc-vence" type="date" value="' + val(d,'vence') + '"></div>' +
-    '<div class="campo campo-full"><label for="doc-desc">Descripción</label><input id="doc-desc" value="' + val(d,'descripcion') + '"></div>' +
+    '<div class="campo campo-full"><label for="doc-desc">Descripción</label><input id="doc-desc" maxlength="200" value="' + val(d,'descripcion') + '"></div>' +
     '<div class="campo campo-full"><label for="doc-file">Archivo PDF o imagen (máx 25MB)' + (d&&d.archivo_path ? ' (ya tiene archivo)' : '') + '</label><input id="doc-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" onchange="toggleAnalizarIA()"></div>' +
     '<div class="campo-full" id="ia-analizar-wrap" style="display:none;margin-top:-4px"><button type="button" class="btn sec sm" onclick="analizarDocIA()" id="btn-ia-analizar" style="width:100%">'+ico('🤖')+'Analizar con IA</button></div>';
 
@@ -2456,7 +2460,7 @@ function modalMant(id) {
     '<div class="campo"><label for="mant-tipo">Tipo</label><input id="mant-tipo" value="' + val(m,'tipo') + '" placeholder="Cambio de aceite"></div>' +
     '<div class="campo"><label for="mant-km">Kilometraje</label><input id="mant-km" type="number" value="' + val(m,'kilometraje') + '"></div>' +
     '<div class="campo"><label for="mant-costo">Costo (CLP)</label><input id="mant-costo" type="number" value="' + val(m,'costo') + '"></div>' +
-    '<div class="campo campo-full"><label for="mant-desc">Descripción</label><input id="mant-desc" value="' + val(m,'descripcion') + '"></div>';
+    '<div class="campo campo-full"><label for="mant-desc">Descripción</label><input id="mant-desc" maxlength="200" value="' + val(m,'descripcion') + '"></div>';
   abrirModal({
     titulo: m ? 'Editar mantención' : 'Registrar mantención',
     bodyHtml: body,
@@ -2490,7 +2494,7 @@ function modalGasto(id) {
     '<div class="campo"><label for="gas-fecha">Fecha *</label><input id="gas-fecha" type="date" value="' + (g ? g.fecha : new Date().toISOString().slice(0,10)) + '"></div>' +
     '<div class="campo"><label for="gas-cat">Categoría</label><select id="gas-cat">' + Object.keys(CATS).map(function(c){ return '<option value="'+c+'"'+(g&&g.categoria===c?' selected':'')+'>'+CATS[c]+'</option>'; }).join('') + '</select></div>' +
     '<div class="campo"><label for="gas-monto">Monto (CLP) *</label><input id="gas-monto" type="number" required value="' + val(g,'monto') + '"></div>' +
-    '<div class="campo campo-full"><label for="gas-desc">Descripción</label><input id="gas-desc" value="' + val(g,'descripcion') + '"></div>';
+    '<div class="campo campo-full"><label for="gas-desc">Descripción</label><input id="gas-desc" maxlength="200" value="' + val(g,'descripcion') + '"></div>';
   abrirModal({
     titulo: g ? 'Editar gasto' : 'Registrar gasto',
     bodyHtml: body,
