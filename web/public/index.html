@@ -1474,7 +1474,7 @@ function vFlota() {
 
       '<div class="acciones"><button class="btn sm" onclick="verFichaVeh('+v.id+')">Ver ficha</button>'+
       '<button class="btn sec sm" onclick="modalVeh('+v.id+')">Editar</button>'+
-      (USER.rol==='admin'?'<button class="btn rojo sm" onclick="borrarVeh('+v.id+',\''+esc(v.nombre).replace(/'/g,"\\'")+'\')" aria-label="Eliminar vehículo">Eliminar</button>':'')+
+      (USER.rol==='admin'||USER.rol==='super_admin'?'<button class="btn rojo sm" onclick="borrarVeh('+v.id+',\''+esc(v.nombre).replace(/'/g,"\\'")+'\')" aria-label="Eliminar vehículo">Eliminar</button>':'')+
       '</div></article>';
   });
   return h + '</div>';

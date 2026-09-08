@@ -98,9 +98,9 @@ vehiculosRouter.put('/:id', async (req, res) => {
   res.json({ data: rows[0] });
 });
 
-// DELETE /api/vehiculos/:id  (solo admin)
+// DELETE /api/vehiculos/:id  (admin y super_admin)
 vehiculosRouter.delete('/:id', async (req, res) => {
-  if (req.user.rol !== 'admin') return res.status(403).json({ error: 'Requiere admin' });
+  if (req.user.rol !== 'admin' && req.user.rol !== 'super_admin') return res.status(403).json({ error: 'Requiere rol admin' });
   const id = Number(req.params.id);
   await pool.query('DELETE FROM vehiculos WHERE id = $1', [id]);
   res.json({ ok: true });
