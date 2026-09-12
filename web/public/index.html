@@ -1619,19 +1619,66 @@ function vFichaVeh() {
       '</div></div>' + gpsEstado + '</div>';
   }
 
-  // Documentos del vehículo (todos los vigentes)
-  if (docs.length) {
-    h += '<h2>Documentos ('+docs.length+')</h2>';
-    docs.forEach(function(d){
-      var e = estadoDoc(d.vence);
-      var badgeEstado = d.vence ? '<span class="badge '+e.cls+'">'+e.txt+'</span>' : '';
-      h += '<div class="item '+(d.vence?e.cls:'')+'"><div style="flex:1">' +
-        '<div class="tit">'+(TIPOS[d.tipo]||d.tipo)+'</div>' +
-        '<div class="det">'+esc(d.descripcion||'')+(d.vence?' · vence '+fmtF(d.vence):'')+'</div>' +
-        '</div>' +
-        (d.archivo_path ? '<button class="btn sec sm" onclick="verDoc('+d.id+')">'+ico('📄')+'Ver</button>' : '') +
-        badgeEstado + '</div>';
+  // Documentos del vehículo — matriz de cumplimiento
+  var esDeportivo = v.tipo === 'deportivo';
+  h += '<h2>Documentos</h2>';
+  h += '<div class="tabla-wrap"><table>';
+  h += '<tr><th>Documento</th><th>Vence</th><th>Estado</th><th>Archivo</th><th>Acción</th></tr>';
+
+  DOCS_MATRIZ.forEach(function(t){
+    var dDoc = docs.find(function(x){ return x.tipo === t; });
+    var nombre = TIPOS[t] || t;
+    var requerido = !esDeportivo;
+
+    if (dDoc) {
+      var est = estadoDoc(dDoc.vence);
+      var archBtn = dDoc.archivo_path ? '<button class="link" onclick="verDoc('+dDoc.id+')">'+ico('📄')+'Ver</button>' : '—';
+      h += '<tr><td><strong>'+nombre+'</strong></td>'+
+        '<td>'+fmtF(dDoc.vence)+'</td>'+
+        '<td><span class="badge '+est.cls+'">'+est.txt+'</span></td>'+
+        '<td>'+archBtn+'</td>'+
+        '<td><button class="btn sec sm" onclick="modalDoc('+dDoc.id+')" aria-label="Editar">'+ico('✏️')+'</button></td></tr>';
+    } else {
+      var reqTxt = esDeportivo ? '<span class="badge gris">Opcional</span>' : '<span class="badge rojo">Falta</span>';
+      h += '<tr><td><strong>'+nombre+'</strong></td>'+
+        '<td>—</td>'+
+        '<td>'+reqTxt+'</td>'+
+        '<td>—</td>'+
+        '<td><button class="btn sm" onclick="modalDocRapido('+v.id+',\''+t+'\')">'+ico('➕')+'Subir</button></td></tr>';
+    }
+  });
+
+  // Documentos adicionales
+  var adicionales = docs.filter(function(x){ return DOCS_MATRIZ.indexOf(x.tipo) < 0; });
+  adicionales.forEach(function(dDoc){
+    h += '<tr><td>'+ico('📄')+' '+(TIPOS[dDoc.tipo]||dDoc.tipo)+'</td>'+
+      '<td>'+fmtF(dDoc.vence)+'</td>'+
+      '<td><span class="badge gris">Adicional</span></td>'+
+      '<td>'+(dDoc.archivo_path?'<button class="link" onclick="verDoc('+dDoc.id+')">'+ico('📄')+'Ver</button>':'—')+'</td>'+
+      '<td><button class="btn sec sm" onclick="modalDoc('+dDoc.id+')" aria-label="Editar">'+ico('✏️')+'</button></td></tr>';
+  });
+
+  h += '</table></div>';
+
+  // Barra de cumplimiento
+  if (!esDeportivo) {
+    var alDia = 0;
+    DOCS_MATRIZ.forEach(function(t){
+      var dd = docs.find(function(x){ return x.tipo === t; });
+      if (dd) {
+        var e2 = estadoDoc(dd.vence);
+        if (e2.cls !== 'rojo') alDia++;
+      }
     });
+    var totalReq = DOCS_MATRIZ.length;
+    var pct = Math.round((alDia / totalReq) * 100);
+    var pctColor = pct === 100 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
+    h += '<div style="margin:10px 0;display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);color:var(--text-3)">'+
+      '<span>Cumplimiento:</span>'+
+      '<div style="flex:1;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden">'+
+      '<div style="width:'+pct+'%;height:100%;background:'+pctColor+';border-radius:3px"></div></div>'+
+      '<span style="font-weight:600;color:'+pctColor+'">'+alDia+'/'+totalReq+'</span>'+
+      '</div>';
   }
 
   // Timeline de ciclo de vida
@@ -1655,35 +1702,125 @@ function vFichaVeh() {
 }
 
 // ============================================================================
-// Vista: Documentos (con botones Agregar/Editar que abren modal)
+// Vista: Documentos — matriz de cumplimiento por vehículo
 // ============================================================================
+// Los 4 documentos estándar que se muestran siempre en la matriz
+var DOCS_MATRIZ = ['soap', 'permiso_circulacion', 'revision_tecnica', 'seguro'];
+
 function vDocs() {
   var h = '<div class="sec-head">' +
     '<h2 style="margin:0">Documentos</h2>' +
     '<button class="btn sm" onclick="modalDoc()">'+ico('➕')+'Agregar documento</button></div>';
-  h += '<div>';
-  var agrupado = {};
-  S.docs.forEach(function(d){ (agrupado[d.vehiculo_id] = agrupado[d.vehiculo_id]||[]).push(d); });
-  var hayAlguno = false;
+
+  // Agrupar documentos vigentes por vehículo
+  var porVeh = {};
+  S.docs.forEach(function(d){ (porVeh[d.vehiculo_id] = porVeh[d.vehiculo_id]||[]).push(d); });
+
+  var flotaOk = 0, flotaPendiente = 0;
+
   S.veh.forEach(function(v){
-    var docs = agrupado[v.id] || [];
-    if (!docs.length) return;
-    hayAlguno = true;
-    h += '<h3 style="color:var(--brand-text)">'+esc(v.nombre)+(v.patente?' · '+esc(v.patente):'')+'</h3>';
-    docs.forEach(function(d){
+    var docs = porVeh[v.id] || [];
+    var esDeportivo = v.tipo === 'deportivo';
+
+    // Buscar documento vigente por tipo
+    function buscarTipo(t) {
+      return docs.find(function(d){ return d.tipo === t; });
+    }
+
+    // Calcular cumplimiento
+    var alDia = 0, faltantes = 0, vencidos = 0;
+    DOCS_MATRIZ.forEach(function(t){
+      var d = buscarTipo(t);
+      if (!d) { if (!esDeportivo) faltantes++; return; }
       var e = estadoDoc(d.vence);
-      var badgeVigente = '<span class="badge verde" style="margin-right:4px">Vigente</span>';
-      h += '<div class="item '+(d.vence?e.cls:'')+'"><div><div class="tit">'+badgeVigente+(TIPOS[d.tipo]||d.tipo)+'</div>'+
-        '<div class="det">'+esc(d.descripcion||'')+(d.vence?' · vence '+fmtF(d.vence):'')+'</div></div>'+
-        (d.archivo_path?'<button class="link" onclick="verDoc('+d.id+')">'+ico('📄')+'Ver</button>':'')+
-        '<button class="btn sec sm" onclick="verHistorialDoc('+d.id+')" aria-label="Ver historial">'+ico('📅')+'</button>'+
-        '<button class="btn sec sm" onclick="modalDoc('+d.id+')" aria-label="Editar documento">'+ico('✏️')+'</button>'+
-        btnEliminar('borrarDoc('+d.id+')','Eliminar documento '+(TIPOS[d.tipo]||d.tipo))+
-        '<span class="badge '+e.cls+'">'+e.txt+'</span></div>';
+      if (e.cls === 'rojo') vencidos++;
+      else if (e.cls === 'verde') alDia++;
+      else faltantes++;
     });
+
+    if (!esDeportivo && faltantes === 0 && vencidos === 0) flotaOk++;
+    else flotaPendiente++;
+
+    // Header del vehículo
+    h += '<h3 style="color:var(--brand-text);margin-top:20px">'+esc(v.nombre)+(v.patente?' · '+esc(v.patente):'')+
+      ' <span class="badge '+(esDeportivo?'gris':'verde')+'" style="margin-left:4px">'+(esDeportivo?'Deportivo':'Calle')+'</span></h3>';
+
+    // Matriz de cumplimiento
+    h += '<div class="tabla-wrap"><table>';
+    h += '<tr><th>Documento</th><th>Vence</th><th>Estado</th><th>Archivo</th><th>Acciones</th></tr>';
+
+    // Filas de documentos estándar
+    DOCS_MATRIZ.forEach(function(t){
+      var d = buscarTipo(t);
+      var nombre = TIPOS[t] || t;
+      var requerido = !esDeportivo;
+
+      if (d) {
+        var est = estadoDoc(d.vence);
+        var badgeVig = d.es_vigente !== false ? '<span class="badge verde" style="font-size:0.6rem;padding:2px 6px;margin-left:4px">Vigente</span>' : '';
+        h += '<tr><td><strong>'+nombre+'</strong>'+(d.descripcion?'<div class="det">'+esc(d.descripcion)+'</div>':'')+'</td>'+
+          '<td>'+fmtF(d.vence)+'</td>'+
+          '<td><span class="badge '+est.cls+'">'+est.txt+'</span>'+badgeVig+'</td>'+
+          '<td>'+(d.archivo_path?'<button class="link" onclick="verDoc('+d.id+')">'+ico('📄')+'Ver</button>':'<span class="det">—</span>')+'</td>'+
+          '<td style="white-space:nowrap">'+
+          '<button class="btn sec sm" onclick="verHistorialDoc('+d.id+')" aria-label="Historial">'+ico('📅')+'</button> '+
+          '<button class="btn sec sm" onclick="modalDoc('+d.id+')" aria-label="Editar documento">'+ico('✏️')+'</button>'+
+          '</td></tr>';
+      } else {
+        var reqTxt = esDeportivo ? '<span class="badge gris">Opcional</span>' : '<span class="badge rojo">Falta</span>';
+        h += '<tr><td><strong>'+nombre+'</strong></td>'+
+          '<td>—</td>'+
+          '<td>'+reqTxt+'</td>'+
+          '<td><span class="det">—</span></td>'+
+          '<td><button class="btn sm" onclick="modalDocRapido('+v.id+',\''+t+'\')">'+ico('➕')+'Subir</button></td></tr>';
+      }
+    });
+
+    // Documentos adicionales (tipo=otro u otros no estándar)
+    var adicionales = docs.filter(function(d){ return DOCS_MATRIZ.indexOf(d.tipo) < 0; });
+    adicionales.forEach(function(d){
+      var est = estadoDoc(d.vence);
+      h += '<tr><td>'+ico('📄')+' '+(TIPOS[d.tipo]||d.tipo)+(d.descripcion?'<div class="det">'+esc(d.descripcion)+'</div>':'')+'</td>'+
+        '<td>'+fmtF(d.vence)+'</td>'+
+        '<td><span class="badge '+est.cls+'">'+est.txt+'</span></td>'+
+        '<td>'+(d.archivo_path?'<button class="link" onclick="verDoc('+d.id+')">'+ico('📄')+'Ver</button>':'—')+'</td>'+
+        '<td style="white-space:nowrap">'+
+        '<button class="btn sec sm" onclick="verHistorialDoc('+d.id+')" aria-label="Historial">'+ico('📅')+'</button> '+
+        '<button class="btn sec sm" onclick="modalDoc('+d.id+')" aria-label="Editar documento">'+ico('✏️')+'</button>'+
+        '</td></tr>';
+    });
+
+    h += '</table></div>';
+
+    // Barra de cumplimiento (solo vehículos calle)
+    if (!esDeportivo) {
+      var total = DOCS_MATRIZ.length;
+      var cumplidos = alDia;
+      var pct = Math.round((cumplidos / total) * 100);
+      var pctColor = pct === 100 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
+      h += '<div style="margin:6px 0 4px;display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);color:var(--text-3)">'+
+        '<span>Cumplimiento:</span>'+
+        '<div style="flex:1;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden">'+
+        '<div style="width:'+pct+'%;height:100%;background:'+pctColor+';border-radius:3px;transition:width 0.4s"></div></div>'+
+        '<span style="font-weight:600;color:'+pctColor+'">'+cumplidos+'/'+total+'</span>'+
+        (vencidos > 0 ? ' <span class="badge rojo">'+vencidos+' vencido'+(vencidos>1?'s':'')+'</span>' : '')+
+        '</div>';
+    }
+
+    // Otros documentos no estándar
+    if (adicionales.length) {
+      h += '<div style="margin:4px 0;font-size:var(--fs-sm);color:var(--text-faint)">'+ico('📄')+' Otros: '+adicionales.map(function(d){return esc(d.descripcion||d.tipo);}).join(', ')+'</div>';
+    }
   });
-  if (!hayAlguno) h += '<div class="vacio">Sin documentos registrados todavía. Sube el SOAP o el permiso para empezar.</div>';
-  return h + '</div>';
+
+  if (flotaOk + flotaPendiente === 0) h += '<div class="vacio">Sin documentos registrados todavía.</div>';
+
+  return h;
+}
+
+// Modal de subida rápida: pre-carga vehículo y tipo
+function modalDocRapido(vehId, tipo) {
+  modalDoc(null, vehId, tipo);
 }
 
 // Modal: historial de versiones de un documento
@@ -2351,23 +2488,31 @@ function setVal(id, v) { var el = document.getElementById(id); if (el) el.value 
 // ============================================================================
 // MODAL: Documento (crear / editar)
 // ============================================================================
-function modalDoc(id) {
+function modalDoc(id, preVehId, preTipo) {
   var d = null;
   if (id) { d = S.docs.find(function(x){ return Number(x.id) === Number(id); }); if (!d) return; }
   var v = d ? S.veh.find(function(x){ return Number(x.id) === Number(d.vehiculo_id); }) : null;
 
+  // Pre-carga desde matriz (sin documento existente)
+  var preVeh = null;
+  if (!d && preVehId) {
+    preVeh = S.veh.find(function(x){ return Number(x.id) === Number(preVehId); });
+  }
+
   var body =
     (d
       ? '<div class="campo-full" style="background:var(--bg);border-radius:8px;padding:10px 14px;border:1px solid var(--border-soft);margin-bottom:4px">📄 <strong style="color:var(--brand-text)">'+esc(v?v.nombre:'')+'</strong>'+(v&&v.patente?' · '+esc(v.patente):'')+'</div>'
-      : '<div class="campo campo-full">' + selVehCampo('doc-veh', null) + '</div>') +
-    '<div class="campo"><label for="doc-tipo">Tipo *</label><select id="doc-tipo">' + Object.keys(TIPOS).map(function(t){ return '<option value="'+t+'"'+(d&&d.tipo===t?' selected':'')+'>'+TIPOS[t]+'</option>'; }).join('') + '</select></div>' +
+      : '<div class="campo campo-full">' + selVehCampo('doc-veh', preVehId || null) + '</div>') +
+    '<div class="campo"><label for="doc-tipo">Tipo *</label><select id="doc-tipo">' + Object.keys(TIPOS).map(function(t){ return '<option value="'+t+'"'+((d&&d.tipo===t)||(!d&&preTipo&&preTipo===t)?' selected':'')+'>'+TIPOS[t]+'</option>'; }).join('') + '</select></div>' +
     '<div class="campo"><label for="doc-vence">Vence</label><input id="doc-vence" type="date" value="' + val(d,'vence') + '"></div>' +
     '<div class="campo campo-full"><label for="doc-desc">Descripción</label><input id="doc-desc" maxlength="200" value="' + val(d,'descripcion') + '"></div>' +
     '<div class="campo campo-full"><label for="doc-file">Archivo PDF o imagen (máx 25MB)' + (d&&d.archivo_path ? ' (ya tiene archivo)' : '') + '</label><input id="doc-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" onchange="toggleAnalizarIA()"></div>' +
     '<div class="campo-full" id="ia-analizar-wrap" style="display:none;margin-top:-4px"><button type="button" class="btn sec sm" onclick="analizarDocIA()" id="btn-ia-analizar" style="width:100%">'+ico('🤖')+'Analizar con IA</button></div>';
 
+  var titulo = d ? 'Editar documento' : (preTipo && preVeh ? 'Subir ' + (TIPOS[preTipo]||preTipo) + ' — ' + preVeh.nombre : 'Agregar documento');
+
   abrirModal({
-    titulo: d ? 'Editar documento' : 'Agregar documento',
+    titulo: titulo,
     enctype: 'multipart/form-data',
     bodyHtml: body,
     textoSave: d ? 'Actualizar' : 'Guardar',
