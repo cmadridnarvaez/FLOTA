@@ -2427,6 +2427,14 @@ function modalVeh(id) {
           fd.append('vence', mv('doc-inline-' + tipo + '-vence') || '');
           fd.append('archivo', fileInput.files[0]);
           await api('/documentos', { method: 'POST', body: fd });
+          // Auto-análisis IA
+          try {
+            var docId = null;
+            var savedDoc = await api('/documentos?vehiculo_id=' + vehiculoId);
+            var docsSaved = savedDoc.data || [];
+            if (docsSaved.length > 0) docId = docsSaved[docsSaved.length - 1].id;
+            if (docId) await analizarDocAutomatico(docId);
+          } catch(e2) { /* silencioso */ }
         }
       }
       await cargarTodo(); render();
@@ -2588,10 +2596,15 @@ function modalDoc(id, preVehId, preTipo) {
       if (d) {
         await api('/documentos/' + d.id, { method:'PUT', body: fd });
         toast('Documento actualizado', 'ok');
+        // Auto-análisis IA si tiene archivo
+        if (file) { await analizarDocAutomatico(d.id); }
       } else {
         fd.append('vehiculo_id', vid);
-        await api('/documentos', { method:'POST', body: fd });
+        var saved = await api('/documentos', { method:'POST', body: fd });
+        var docId = saved.data ? saved.data.id : null;
         toast('Documento registrado', 'ok');
+        // Auto-análisis IA si tiene archivo
+        if (file && docId) { await analizarDocAutomatico(docId); }
       }
       await cargarTodo(); render();
     }
@@ -2599,6 +2612,24 @@ function modalDoc(id, preVehId, preTipo) {
 }
 
 // Mostrar/ocultar botón Analizar IA según si hay archivo seleccionado
+// Análisis automático con IA después de guardar un documento
+async function analizarDocAutomatico(docId) {
+  try {
+    var r = await api('/documentos/' + docId + '/analizar-ia', { method: 'POST' });
+    if (r.data) {
+      var info = r.data;
+      var partes = [];
+      if (info.descripcion) partes.push(info.descripcion);
+      if (info.vence) partes.push('vence ' + info.vence);
+      if (info.patente) partes.push(info.patente);
+      toast('🤖 IA: ' + (partes.length ? partes.join(' · ') : 'analizado'), 'ok');
+    }
+  } catch (e) {
+    // Silencioso: si falla la IA, el documento ya está guardado
+    console.log('IA análisis opcional falló:', e.message);
+  }
+}
+
 function toggleAnalizarIA() {
   var file = document.getElementById('doc-file');
   var wrap = document.getElementById('ia-analizar-wrap');
