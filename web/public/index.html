@@ -2384,6 +2384,10 @@ function modalVeh(id) {
   var v = null;
   if (id) { v = S.veh.find(function(x){ return Number(x.id) === Number(id); }); if (!v) return; }
   var body = camposVeh(v);
+  // Sección documentos inline (solo al editar vehículo existente)
+  if (v) {
+    body += camposDocsInline(v);
+  }
   abrirModal({
     titulo: v ? 'Editar ' + (v.nombre || 'vehículo') : 'Agregar vehículo',
     bodyHtml: body,
@@ -2402,16 +2406,72 @@ function modalVeh(id) {
         gps_vence: mv('veh-gps-vence') || null
       };
       if (!body.nombre) { toast('El nombre es obligatorio', 'err'); return false; }
+      var vehiculoId = v ? v.id : null;
       if (v) {
         await api('/vehiculos/' + v.id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
         toast('Vehículo actualizado', 'ok');
       } else {
-        await api('/vehiculos', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        var result = await api('/vehiculos', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        vehiculoId = result.data.id;
         toast('Vehículo agregado a la flota', 'ok');
+      }
+      // Subir documentos inline si hay archivos seleccionados
+      for (var i = 0; i < DOCS_MATRIZ.length; i++) {
+        var tipo = DOCS_MATRIZ[i];
+        var fileInput = document.getElementById('doc-inline-' + tipo);
+        if (fileInput && fileInput.files[0]) {
+          var fd = new FormData();
+          fd.append('vehiculo_id', vehiculoId);
+          fd.append('tipo', tipo);
+          fd.append('descripcion', tipo.toUpperCase() + ' (subido desde vehículo)');
+          fd.append('vence', mv('doc-inline-' + tipo + '-vence') || '');
+          fd.append('archivo', fileInput.files[0]);
+          await api('/documentos', { method: 'POST', body: fd });
+        }
       }
       await cargarTodo(); render();
     }
   });
+}
+
+// Sección documentos inline dentro del modal de vehículo
+function camposDocsInline(v) {
+  var vehDocs = S.docs.filter(function(d){ return Number(d.vehiculo_id) === Number(v.id) && d.es_vigente !== false; });
+  var h = '<div class="campo-full" style="margin-top:8px">' +
+    '<div style="font-size:var(--fs-sm);color:var(--text-3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border-soft)">' + ico('📄') + 'Documentos</div>' +
+    '</div>';
+
+  DOCS_MATRIZ.forEach(function(t) {
+    var exist = vehDocs.find(function(d){ return d.tipo === t; });
+    var nombre = TIPOS[t] || t;
+    if (exist) {
+      // Documento ya existe → mostrar estado + botón ver + reemplazar
+      var e = estadoDoc(exist.vence);
+      h += '<div class="campo-full" style="display:flex;align-items:center;gap:8px;padding:4px 0">' +
+        '<span style="color:var(--green)">' + ico('✅') + '</span>' +
+        '<span style="flex:1;font-size:var(--fs-sm)"><strong>' + nombre + '</strong>' +
+        (exist.vence ? ' · vence ' + fmtF(exist.vence) : '') + '</span>' +
+        (exist.archivo_path ? '<button type="button" class="link" onclick="verDoc(' + exist.id + ')">' + ico('📄') + 'Ver</button>' : '') +
+        '</div>';
+    } else {
+      // Documento faltante → mostrar input para subir
+      h += '<div class="campo campo-full" style="display:flex;gap:8px;align-items:center;padding:4px 0">' +
+        '<span style="color:var(--text-faint);min-width:20px">' + ico('⬜') + '</span>' +
+        '<span style="font-size:var(--fs-sm);color:var(--text-3);min-width:120px">' + nombre + '</span>' +
+        '<input type="file" id="doc-inline-' + t + '" accept=".pdf,.png,.jpg,.jpeg" style="flex:1;font-size:0.75rem;padding:4px">' +
+        '<input type="date" id="doc-inline-' + t + '-vence" placeholder="Vence" style="width:130px;font-size:0.75rem;padding:4px">' +
+        '</div>';
+    }
+  });
+  // Documentos adicionales si los hay
+  var adicionales = vehDocs.filter(function(d){ return DOCS_MATRIZ.indexOf(d.tipo) < 0; });
+  adicionales.forEach(function(d) {
+    h += '<div class="campo-full" style="display:flex;align-items:center;gap:8px;padding:4px 0">' +
+      '<span style="color:var(--green)">' + ico('✅') + '</span>' +
+      '<span style="flex:1;font-size:var(--fs-sm)">' + (TIPOS[d.tipo]||d.tipo) + (d.descripcion ? ' — ' + esc(d.descripcion) : '') + '</span>' +
+      '</div>';
+  });
+  return h;
 }
 
 function camposVeh(v) {

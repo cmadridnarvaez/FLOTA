@@ -109,12 +109,16 @@ usuariosRouter.put('/:id/vehiculos', requireAdmin, async (req, res) => {
 });
 
 // ============================================================================
-// API Keys — gestión (solo admin)
+// API Keys — gestión (admin gestiona cualquiera; usuarios gestionan las suyas)
 // ============================================================================
 
 // GET /api/usuarios/:id/api-keys — listar keys del usuario
-usuariosRouter.get('/:id/api-keys', requireAdmin, async (req, res) => {
+usuariosRouter.get('/:id/api-keys', async (req, res) => {
   const id = Number(req.params.id);
+  // Un usuario solo puede ver sus propias keys; admin puede ver cualquiera
+  if (req.user.rol !== 'admin' && req.user.rol !== 'super_admin' && req.user.id !== id) {
+    return res.status(403).json({ error: 'Solo puedes ver tus propias API keys' });
+  }
   const { rows } = await pool.query(
     `SELECT id, nombre, key_prefix, scopes, activa, creada_en, ultimo_uso, expires_at
      FROM api_keys WHERE usuario_id = $1 ORDER BY creada_en DESC`,
@@ -124,8 +128,12 @@ usuariosRouter.get('/:id/api-keys', requireAdmin, async (req, res) => {
 });
 
 // POST /api/usuarios/:id/api-keys — crear key (devuelve plaintext UNA sola vez)
-usuariosRouter.post('/:id/api-keys', requireAdmin, async (req, res) => {
+usuariosRouter.post('/:id/api-keys', async (req, res) => {
   const id = Number(req.params.id);
+  // Un usuario solo puede crear keys para sí mismo
+  if (req.user.rol !== 'admin' && req.user.rol !== 'super_admin' && req.user.id !== id) {
+    return res.status(403).json({ error: 'Solo puedes crear API keys para ti mismo' });
+  }
   const b = req.body || {};
   if (!b.nombre) return res.status(400).json({ error: 'nombre es obligatorio' });
 
@@ -147,7 +155,18 @@ usuariosRouter.post('/:id/api-keys', requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/usuarios/:id/api-keys/:keyId — revocar
-usuariosRouter.delete('/:id/api-keys/:keyId', requireAdmin, async (req, res) => {
+usuariosRouter.delete('/:id/api-keys/:keyId', async (req, res) => {
+  const id = Number(req.params.id);
+  const keyId = Number(req.params.keyId);
+  // Un usuario solo puede revocar sus propias keys; admin puede revocar cualquiera
+  if (req.user.rol !== 'admin' && req.user.rol !== 'super_admin' && req.user.id !== id) {
+    return res.status(403).json({ error: 'Solo puedes revocar tus propias API keys' });
+  }
+  await pool.query('UPDATE api_keys SET activa = FALSE WHERE id = $1 AND usuario_id = $2', [keyId, id]);
+  res.json({ ok: true });
+});
+
+// DELETE /api/usuarios/:id/api-keys/:keyId — revocar (admin)
   const keyId = Number(req.params.keyId);
   await pool.query('UPDATE api_keys SET activa = FALSE WHERE id = $1 AND usuario_id = $2', [keyId, Number(req.params.id)]);
   res.json({ ok: true });
